@@ -1,0 +1,70 @@
+{
+	"trade-network": {
+		"orderer": {
+			"mspid": "TradeOrdererOrgMSP",
+			"url": "grpcs://orderer.trade.com:7050",
+			"server-hostname": "orderer.trade.com",
+			"tls_cacerts": "../bash/crypto-config/ordererOrganizations/trade.com/orderers/orderer.trade.com/msp/tlscacerts/tlsca.trade.com-cert.pem"
+		},
+		"exporterorg": {
+			"name": "peerExporterOrg",
+			"mspid": "ExporterOrgMSP",
+			"ca": {
+				"url": "https://ca.exporterorg.trade.com:7054",
+				"name": "ca-exporterorg",
+				"tls_cacerts": "../bash/crypto-config/peerOrganizations/exporterorg.trade.com/ca/ca.exporterorg.trade.com-cert.pem"
+			},
+			"peer1": {
+				"requests": "grpcs://peer0.exporterorg.trade.com:7051",
+				"events": "grpcs://peer0.exporterorg.trade.com:7053",
+				"server-hostname": "peer0.exporterorg.trade.com",
+				"tls_cacerts": "../bash/crypto-config/peerOrganizations/exporterorg.trade.com/peers/peer0.exporterorg.trade.com/msp/tlscacerts/tlsca.exporterorg.trade.com-cert.pem"
+			}
+		},
+		"importerorg": {
+			"name": "peerImporterOrg",
+			"mspid": "ImporterOrgMSP",
+			"ca": {
+				"url": "https://ca.importerorg.trade.com:8054",
+				"name": "ca-importerorg",
+				"tls_cacerts": "../bash/crypto-config/peerOrganizations/importerorg.trade.com/ca/ca.importerorg.trade.com-cert.pem"
+			},
+			"peer1": {
+				"requests": "grpcs://peer0.importerorg.trade.com:8051",
+				"events": "grpcs://peer0.importerorg.trade.com:8053",
+				"server-hostname": "peer0.importerorg.trade.com",
+				"tls_cacerts": "../bash/crypto-config/peerOrganizations/importerorg.trade.com/peers/peer0.importerorg.trade.com/msp/tlscacerts/tlsca.importerorg.trade.com-cert.pem"
+			}
+		},
+		"carrierorg": {
+			"name": "peerCarrierOrg",
+			"mspid": "CarrierOrgMSP",
+			"ca": {
+				"url": "https://ca.carrierorg.trade.com:9054",
+				"name": "ca-carrierorg",
+				"tls_cacerts": "../bash/crypto-config/peerOrganizations/carrierorg.trade.com/ca/ca.carrierorg.trade.com-cert.pem"
+			},
+			"peer1": {
+				"requests": "grpcs://peer0.carrierorg.trade.com:9051",
+				"events": "grpcs://peer0.carrierorg.trade.com:9053",
+				"server-hostname": "peer0.carrierorg.trade.com",
+				"tls_cacerts": "../bash/crypto-config/peerOrganizations/carrierorg.trade.com/peers/peer0.carrierorg.trade.com/msp/tlscacerts/tlsca.carrierorg.trade.com-cert.pem"
+			}
+		},
+		"regulatororg": {
+			"name": "peerRegulatorOrg",
+			"mspid": "RegulatorOrgMSP",
+			"ca": {
+				"url": "https://ca.regulatororg.trade.com:10054",
+				"name": "ca-regulatororg",
+				"tls_cacerts": "../bash/crypto-config/peerOrganizations/regulatororg.trade.com/ca/ca.regulatororg.trade.com-cert.pem"
+			},
+			"peer1": {
+				"requests": "grpcs://peer0.regulatororg.trade.com:10051",
+				"events": "grpcs://peer0.regulatororg.trade.com:10053",
+				"server-hostname": "peer0.regulatororg.trade.com",
+				"tls_cacerts": "../bash/crypto-config/peerOrganizations/regulatororg.trade.com/peers/peer0.regulatororg.trade.com/msp/tlscacerts/tlsca.regulatororg.trade.com-cert.pem"
+			}
+		}
+	}
+}

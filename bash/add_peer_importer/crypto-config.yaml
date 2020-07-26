@@ -1,0 +1,18 @@
+#
+# SPDX-License-Identifier: Apache-2.0
+#
+
+# ---------------------------------------------------------------------------
+# "PeerOrgs" - Definition of organizations managing peer nodes
+# ---------------------------------------------------------------------------
+PeerOrgs:
+  # ---------------------------------------------------------------------------
+  # ImporterOrg
+  # ---------------------------------------------------------------------------
+  - Name: ImporterOrg
+    Domain: importerorg.trade.com
+    EnableNodeOUs: true
+    Template:
+      Count: 2
+    Users:
+      Count: 0

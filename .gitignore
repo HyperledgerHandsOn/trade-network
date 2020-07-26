@@ -1,0 +1,14 @@
+# Nodes directory of IBM Blockchain Platform
+nodes
+
+# Wallet directory of IBM Blockchain Platform
+wallets
+
+# Gateways directory of IBM Blockchain Platform
+gateways
+
+# Any node.js libraries
+node_modules
+
+# Ignore Mac hidden files
+.DS_Store

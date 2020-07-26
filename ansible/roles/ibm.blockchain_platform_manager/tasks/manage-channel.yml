@@ -1,0 +1,35 @@
+#
+# SPDX-License-Identifier: Apache-2.0
+#
+---
+- name: Retrieve channel genesis block
+  command: >
+    peer channel fetch
+    0
+    /dev/null
+    -o {{ ibp[channel.orderer.id].hostname }}:{{ ibp[channel.orderer.id].port }}
+    -c {{ channel.name }}
+    {{ '--tls' if ibp[channel.orderer.id].protocol == 'grpcs' else '' }}
+    {{ '--cafile "' + ibp[channel.orderer.id].pem + '"' if ibp[channel.orderer.id].protocol == 'grpcs' else '' }}
+    {{ '--ordererTLSHostnameOverride ' + ibp[channel.orderer.id].internal_hostname if ibp[channel.orderer.id].internal_hostname is defined else '' }}
+  environment:
+    FABRIC_CFG_PATH: "{{ role_path }}/files/sampleconfig"
+    CORE_PEER_MSPCONFIGPATH: "{{ channel.members[0].wallet }}/{{ channel.members[0].msp.admin.identity }}"
+    CORE_PEER_LOCALMSPID: "{{ channel.members[0].msp.id }}"
+  register: channel_fetch
+  failed_when: False
+  changed_when: False
+
+- name: Determine if channel exists
+  set_fact:
+    channel_exists: "{{ channel_fetch.rc == 0 }}"
+
+- name: Create channel
+  include_tasks: manage-channel/create-channel.yml
+  when: not channel_exists
+
+- name: Update channel
+  include_tasks: manage-channel/update-channel.yml
+
+- name: Join channel
+  include_tasks: manage-channel/join-channel.yml

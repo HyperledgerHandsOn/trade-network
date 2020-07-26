@@ -1,0 +1,32 @@
+#
+# SPDX-License-Identifier: Apache-2.0
+#
+---
+- name: Extract label from package
+  shell: >
+      set -o pipefail &&
+      tar xOf {{ contract.package }} metadata.json
+  args:
+    executable: /bin/bash
+  register: package_metadata
+  changed_when: False
+
+- name: Set package label
+  set_fact:
+      package_label: "{{ (package_metadata.stdout | from_json).label }}"
+
+- name: Determine SHA256 hash of package
+  stat:
+      path: "{{ contract.package }}"
+      checksum_algorithm: sha256
+  register: package_stats
+
+- name: Set package ID
+  set_fact:
+      package_id: "{{ package_label }}:{{ package_stats.stat.checksum }}"
+
+- name: Install, approve and commit all definitions on all channels
+  include_tasks: manage-contract/channel.yml
+  with_items: "{{ contract.channels }}"
+  loop_control:
+      loop_var: channel

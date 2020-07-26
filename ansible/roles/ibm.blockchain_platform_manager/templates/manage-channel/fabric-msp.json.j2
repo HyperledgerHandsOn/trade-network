@@ -1,0 +1,139 @@
+{# SPDX-License-Identifier: Apache-2.0 #}
+{
+    "groups": {},
+    "mod_policy": "Admins",
+    "policies": {
+        "Admins": {
+            "mod_policy": "Admins",
+            "policy": {
+                "type": 1,
+                "value": {
+                    "identities": [
+                        {
+                            "principal": {
+                                "msp_identifier": "{{ member.msp.id }}",
+                                "role": "MEMBER"
+                            },
+                            "principal_classification": "ROLE"
+                        }
+                    ],
+                    "rule": {
+                        "n_out_of": {
+                            "n": 1,
+                            "rules": [
+                                {
+                                    "signed_by": 0
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        },
+        "Readers": {
+            "mod_policy": "Admins",
+            "policy": {
+                "type": 1,
+                "value": {
+                    "identities": [
+                        {
+                            "principal": {
+                                "msp_identifier": "{{ member.msp.id }}",
+                                "role": "MEMBER"
+                            },
+                            "principal_classification": "ROLE"
+                        }
+                    ],
+                    "rule": {
+                        "n_out_of": {
+                            "n": 1,
+                            "rules": [
+                                {
+                                    "signed_by": 0
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        },
+        "Writers": {
+            "mod_policy": "Admins",
+            "policy": {
+                "type": 1,
+                "value": {
+                    "identities": [
+                        {
+                            "principal": {
+                                "msp_identifier": "{{ member.msp.id }}",
+                                "role": "MEMBER"
+                            },
+                            "principal_classification": "ROLE"
+                        }
+                    ],
+                    "rule": {
+                        "n_out_of": {
+                            "n": 1,
+                            "rules": [
+                                {
+                                    "signed_by": 0
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        },
+        "Endorsement": {
+            "mod_policy": "Admins",
+            "policy": {
+                "type": 1,
+                "value": {
+                    "identities": [
+                        {
+                            "principal": {
+                                "msp_identifier": "{{ member.msp.id }}",
+                                "role": "MEMBER"
+                            },
+                            "principal_classification": "ROLE"
+                        }
+                    ],
+                    "rule": {
+                        "n_out_of": {
+                            "n": 1,
+                            "rules": [
+                                {
+                                    "signed_by": 0
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        }
+    },
+    "values": {
+        "MSP": {
+            "mod_policy": "Admins",
+            "value": {
+                "config": {
+                    "admins": {{ ibp[member.msp.id].admin_certificates }},
+                    "crypto_config": {
+                        "identity_identifier_hash_function": "SHA256",
+                        "signature_hash_family": "SHA2"
+                    },
+                    "fabric_node_ous": null,
+                    "intermediate_certs": [],
+                    "name": "{{ member.msp.id }}",
+                    "organizational_unit_identifiers": [],
+                    "revocation_list": [],
+                    "root_certs": {{ ibp[member.msp.id].root_certificates }},
+                    "signing_identity": null,
+                    "tls_intermediate_certs": [],
+                    "tls_root_certs": {{ ibp[member.msp.id].tls_root_certificates if ibp[member.msp.id].tls_root_certificates is defined else [] }}
+                },
+                "type": 0
+            },
+        }
+    },
+}

@@ -1,0 +1,107 @@
+#
+# SPDX-License-Identifier: Apache-2.0
+#
+---
+- name: Register the user for the orderer
+  include_tasks: register-user.yml
+  vars:
+    protocol: "{{ ibp[organization.ca.id].protocol }}"
+    hostname: "{{ ibp[organization.ca.id].hostname }}"
+    port: "{{ ibp[organization.ca.id].port }}"
+    caname: "{{ ibp[organization.ca.id].caname }}"
+    identity: "{{ orderer.identity }}"
+    secret: "{{ orderer.secret }}"
+    type: peer
+    registrar: "{{ organization.ca.admin_identity }}"
+
+- name: Register the TLS user for the orderer
+  include_tasks: register-tls-user.yml
+  vars:
+    protocol: "{{ ibp[organization.ca.id].protocol }}"
+    hostname: "{{ ibp[organization.ca.id].hostname }}"
+    port: "{{ ibp[organization.ca.id].port }}"
+    caname: "{{ ibp[organization.ca.id].tlscaname }}"
+    identity: "{{ orderer.tls.identity }}"
+    secret: "{{ orderer.tls.secret }}"
+    type: peer
+    registrar: "{{ organization.ca.admin_identity }}"
+  when: orderer.tls.enabled
+
+- name: Get the list of components
+  uri:
+    url: "{{ infrastructure.software.api_endpoint }}/ak/api/v1/components?skip_cache=yes"
+    url_username: "{{ infrastructure.software.api_key }}"
+    url_password: "{{ infrastructure.software.api_secret }}"
+    method: GET
+    return_content: yes
+    validate_certs: no
+  register: ibp_components
+
+- name: Check for orderer
+  set_fact:
+    ibp_orderer_count: "{{
+      ibp_components.json |
+      selectattr('cluster_name', 'defined') |
+      selectattr('cluster_name', 'eq', orderer.ibp.cluster_name) |
+      list
+    }}"
+
+- name: Create orderer
+  uri:
+    url: "{{ infrastructure.software.api_endpoint }}/ak/api/v1/kubernetes/components/orderer"
+    url_username: "{{ infrastructure.software.api_key }}"
+    url_password: "{{ infrastructure.software.api_secret }}"
+    method: POST
+    body_format: json
+    body: "{{ lookup('template', 'software/create-orderer.json.j2') }}"
+    validate_certs: no
+  changed_when: True
+  when: not ibp_orderer_count
+
+- name: Get the list of components
+  uri:
+    url: "{{ infrastructure.software.api_endpoint }}/ak/api/v1/components?skip_cache=yes"
+    url_username: "{{ infrastructure.software.api_key }}"
+    url_password: "{{ infrastructure.software.api_secret }}"
+    method: GET
+    return_content: yes
+    validate_certs: no
+  register: ibp_components
+
+- name: Get orderer
+  set_fact:
+    ibp_orderer: "{{
+      ibp_components.json |
+      selectattr('cluster_name', 'defined') |
+      selectattr('cluster_name', 'eq', orderer.ibp.cluster_name) |
+      first
+    }}"
+
+- name: Wait for orderer to start
+  uri:
+    url: "{{ ibp_orderer.operations_url }}/healthz"
+    status_code: "200"
+    validate_certs: no
+  register: result
+  until: result.status == 200
+  retries: 600
+  delay: 1
+
+- name: Update orderer facts
+  set_fact:
+    ibp: "{{
+      ibp |
+      combine({
+        orderer.id: {
+          'protocol': ibp_orderer.api_url | urlsplit('scheme'),
+          'hostname': ibp_orderer.api_url | urlsplit('hostname'),
+          'port': ibp_orderer.api_url | urlsplit('port'),
+          'pem': organization.wallet + '/tls-root.pem' if orderer.tls.enabled else ''
+        }
+      }, recursive=True)
+    }}"
+
+- name: Create node JSON file
+  copy:
+    content: "{{ lookup('template', 'software/orderer-node.json.j2') | to_nice_json }}"
+    dest: "{{ organization.nodes }}/{{ orderer.id }}.json"

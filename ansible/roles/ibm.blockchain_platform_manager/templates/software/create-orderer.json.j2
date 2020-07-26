@@ -1,0 +1,52 @@
+{# SPDX-License-Identifier: Apache-2.0 #}
+{
+    "orderer_type": "raft",
+    "msp_id": "{{ organization.msp.id }}",
+    "tls_cert": "{{ lookup('file', organization.wallet + '/tls-root.pem') | b64encode }}",
+    "config": [{
+        "enrollment": {
+            "component": {
+                "cahost": "{{ ibp[organization.ca.id].hostname }}",
+                "caport": "{{ ibp[organization.ca.id].port }}",
+                "caname": "{{ ibp[organization.ca.id].caname }}",
+                "catls": {
+                    "cacert": "{{ lookup('file', organization.wallet + '/ca-tls-root.pem') | b64encode }}"
+                },
+                "enrollid": "{{ orderer.identity  }}",
+                "enrollsecret": "{{ orderer.secret }}",
+                "admincerts": {{ ibp[organization.msp.id].admin_certificates }}
+            },
+            "tls": {
+                "cahost": "{{ ibp[organization.ca.id].hostname }}",
+                "caport": "{{ ibp[organization.ca.id].port }}",
+                "caname": "{{ ibp[organization.ca.id].tlscaname }}",
+                "catls": {
+                    "cacert": "{{ lookup('file', organization.wallet + '/ca-tls-root.pem') | b64encode }}"
+                },
+                "enrollid": "{{ orderer.tls.identity }}",
+                "enrollsecret": "{{ orderer.tls.secret }}"
+            }
+        }
+    }],
+    "cluster_name": "{{ orderer.ibp.cluster_name }}",
+    "display_name": "{{ orderer.ibp.display_name }}",
+    "resources": {
+        "orderer": {
+            "requests": {
+                "cpu": "250m",
+                "memory": "500Mi"
+            }
+        },
+        "grpcweb": {
+            "requests": {
+                "cpu": "100m",
+                "memory": "200Mi"
+            }
+        }
+    },
+    "storage": {
+        "orderer": {
+            "size": "100Gi"
+        }
+    }
+}

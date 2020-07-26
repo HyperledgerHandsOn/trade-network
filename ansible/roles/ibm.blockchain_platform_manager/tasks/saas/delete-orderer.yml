@@ -1,0 +1,32 @@
+#
+# SPDX-License-Identifier: Apache-2.0
+#
+---
+- name: Get the list of components
+  uri:
+    url: "{{ infrastructure.saas.api_endpoint }}/ak/api/v1/components?skip_cache=yes"
+    method: GET
+    return_content: yes
+    headers:
+      Authorization: "Bearer {{ ibp.saas.access_token }}"
+  register: ibp_components
+
+- name: Check for orderer
+  set_fact:
+    ibp_orderer_count: "{{
+      ibp_components.json |
+      selectattr('cluster_name', 'defined') |
+      selectattr('cluster_name', 'eq', orderer.ibp.cluster_name) |
+      list
+    }}"
+
+- name: Delete orderer
+  uri:
+    url: "{{ infrastructure.saas.api_endpoint }}/ak/api/v1/kubernetes/components/{{ ibp_orderer.id }}"
+    method: DELETE
+    headers:
+      Authorization: "Bearer {{ ibp.saas.access_token }}"
+  changed_when: True
+  with_items: "{{ ibp_orderer_count }}"
+  loop_control:
+    loop_var: ibp_orderer

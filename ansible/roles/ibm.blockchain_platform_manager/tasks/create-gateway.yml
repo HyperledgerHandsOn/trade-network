@@ -1,0 +1,8 @@
+#
+# SPDX-License-Identifier: Apache-2.0
+#
+---
+- name: Create gateway JSON file
+  copy:
+    content: "{{ lookup('template', 'gateway.json.j2') | to_nice_json }}"
+    dest: "{{ gateway.organization.gateways }}/{{ gateway.name }}.json"

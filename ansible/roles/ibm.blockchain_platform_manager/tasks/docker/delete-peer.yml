@@ -1,0 +1,36 @@
+#
+# SPDX-License-Identifier: Apache-2.0
+#
+---
+- name: Stop and remove CouchDB container
+  docker_container:
+    name: "{{ peer.docker.couchdb.name }}"
+    state: absent
+  when: peer.database_type is defined and peer.database_type == "couchdb"
+
+- name: Stop and remove peer container
+  docker_container:
+    name: "{{ peer.docker.name }}"
+    state: absent
+
+- name: Delete peer MSP volume
+  docker_volume:
+    name: "{{ peer.docker.name }}-msp"
+    state: absent
+
+- name: Delete peer TLS volume
+  docker_volume:
+    name: "{{ peer.docker.name }}-tls"
+    state: absent
+  when: peer.tls.enabled
+
+- name: Delete peer data volume
+  docker_volume:
+    name: "{{ peer.docker.name }}-data"
+    state: absent
+
+- name: Delete CouchDB data volume
+  docker_volume:
+    name: "{{ peer.docker.couchdb.name }}-data"
+    state: absent
+  when: peer.database_type is defined and peer.database_type == "couchdb"

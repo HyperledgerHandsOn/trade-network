@@ -1,0 +1,81 @@
+#
+# SPDX-License-Identifier: Apache-2.0
+#
+---
+- name: Enroll the admin user for the certificate authority
+  include_tasks: enroll-user.yml
+  vars:
+    protocol: "{{ ibp[organization.ca.id].protocol }}"
+    hostname: "{{ ibp[organization.ca.id].hostname }}"
+    port: "{{ ibp[organization.ca.id].port }}"
+    caname: "{{ ibp[organization.ca.id].caname }}"
+    identity: "{{ organization.ca.admin_identity }}"
+    secret: "{{ organization.ca.admin_secret }}"
+    msp_id: "{{ organization.msp.id }}"
+
+- name: Enroll the admin user for the TLS certificate authority
+  include_tasks: enroll-user.yml
+  vars:
+    protocol: "{{ ibp[organization.ca.id].protocol }}"
+    hostname: "{{ ibp[organization.ca.id].hostname }}"
+    port: "{{ ibp[organization.ca.id].port }}"
+    caname: "{{ ibp[organization.ca.id].tlscaname }}"
+    identity: "{{ organization.ca.admin_identity }}"
+    secret: "{{ organization.ca.admin_secret }}"
+    msp_id: "{{ organization.msp.id }}"
+
+- name: Register the admin user for the MSP
+  include_tasks: register-user.yml
+  vars:
+    protocol: "{{ ibp[organization.ca.id].protocol }}"
+    hostname: "{{ ibp[organization.ca.id].hostname }}"
+    port: "{{ ibp[organization.ca.id].port }}"
+    caname: "{{ ibp[organization.ca.id].caname }}"
+    identity: "{{ organization.msp.admin.identity }}"
+    secret: "{{ organization.msp.admin.secret }}"
+    type: client
+    registrar: "{{ organization.ca.admin_identity }}"
+
+- name: Enroll the admin user for the MSP
+  include_tasks: enroll-user.yml
+  vars:
+    protocol: "{{ ibp[organization.ca.id].protocol }}"
+    hostname: "{{ ibp[organization.ca.id].hostname }}"
+    port: "{{ ibp[organization.ca.id].port }}"
+    caname: "{{ ibp[organization.ca.id].caname }}"
+    identity: "{{ organization.msp.admin.identity }}"
+    secret: "{{ organization.msp.admin.secret }}"
+    msp_id: "{{ organization.msp.id }}"
+
+- name: Ensure admin certificate directory exists
+  file:
+    path: "{{ organization.wallet }}/{{ organization.msp.admin.identity }}/admincerts"
+    state: directory
+
+- name: Copy admin user certificate into admin certificate directory
+  copy:
+    src: "{{ item }}"
+    dest: "{{ organization.wallet }}/{{ organization.msp.admin.identity }}/admincerts/{{ item | basename }}"
+  with_fileglob:
+    - "{{ organization.wallet }}/{{ organization.msp.admin.identity }}/signcerts/*.pem"
+
+- name: Gather root certificates
+  set_fact:
+      ibp: "{{ ibp | combine({ msp.id: { 'root_certificates': [ lookup('file', item) | b64encode ]  } }, recursive=True) }}"
+  with_fileglob:
+    - "{{ organization.wallet }}/root.pem"
+
+- name: Gather TLS root certificates
+  set_fact:
+      ibp: "{{ ibp | combine({ msp.id: { 'tls_root_certificates': [ lookup('file', item) | b64encode ]  } }, recursive=True) }}"
+  with_fileglob:
+    - "{{ organization.wallet }}/tls-root.pem"
+
+- name: Gather admin user certificates
+  set_fact:
+      ibp: "{{ ibp | combine({ msp.id: { 'admin_certificates': [ lookup('file', item) | b64encode ]  } }, recursive=True) }}"
+  with_fileglob:
+    - "{{ organization.wallet }}/{{ organization.msp.admin.identity }}/signcerts/*.pem"
+
+- name: Create MSP in infrastructure
+  include_tasks: "{{ infrastructure.type }}/create-msp.yml"

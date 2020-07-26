@@ -1,0 +1,18 @@
+{# SPDX-License-Identifier: Apache-2.0 #}
+{
+    "mod_policy": "Admins",
+    "value": {
+        "anchor_peers": [
+            {% for peer in member.anchor_peers %}
+            {
+                {% if ibp[peer.id].internal_hostname is defined %}
+                "host": "{{ ibp[peer.id].internal_hostname }}",
+                {% else %}
+                "host": "{{ ibp[peer.id].hostname }}",
+                {% endif %}
+                "port": {{ ibp[peer.id].port }}
+            }{%- if not loop.last -%},{% endif %}
+            {% endfor %}
+        ]
+    }
+}

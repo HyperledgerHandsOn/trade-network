@@ -1,0 +1,9 @@
+#
+# SPDX-License-Identifier: Apache-2.0
+#
+---
+- name: Join all peers to channel
+  include_tasks: join-channel-peer.yml
+  with_items: "{{ member.committing_peers }}"
+  loop_control:
+      loop_var: peer

@@ -1,0 +1,41 @@
+#
+# SPDX-License-Identifier: Apache-2.0
+#
+---
+- name: Delete nodes directory
+  file:
+    path: "{{ organization.nodes }}"
+    state: absent
+
+- name: Delete wallet directory
+  file:
+    path: "{{ organization.wallet }}"
+    state: absent
+
+- name: Delete gateways directory
+  file:
+    path: "{{ organization.gateways }}"
+    state: absent
+
+- name: Delete certificate authority
+  include_tasks: "{{ infrastructure.type }}/delete-ca.yml"
+  vars:
+    ca: "{{ organization.ca }}"
+
+- name: Delete MSP
+  include_tasks: delete-msp.yml
+  vars:
+    msp: "{{ organization.msp }}"
+
+- name: Delete all peers
+  include_tasks: "{{ infrastructure.type }}/delete-peer.yml"
+  with_items: "{{ organization.peers }}"
+  loop_control:
+    loop_var: peer
+  when: organization.peers is defined
+
+- name: Delete orderer
+  include_tasks: "{{ infrastructure.type }}/delete-orderer.yml"
+  vars:
+    orderer: "{{ organization.orderer }}"
+  when: organization.orderer is defined

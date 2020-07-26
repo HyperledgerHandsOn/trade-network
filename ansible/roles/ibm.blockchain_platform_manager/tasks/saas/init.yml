@@ -1,0 +1,18 @@
+#
+# SPDX-License-Identifier: Apache-2.0
+#
+---
+- name: Authenticate to IBM Blockchain Platform service
+  uri:
+    url: "https://iam.cloud.ibm.com/identity/token"
+    method: POST
+    return_content: yes
+    body_format: "form-urlencoded"
+    body:
+      apikey: "{{ infrastructure.saas.apikey }}"
+      grant_type: "urn:ibm:params:oauth:grant-type:apikey"
+  register: auth
+
+- name: Store access token
+  set_fact:
+    ibp: "{{ ibp | combine({ 'saas': { 'access_token': auth.json.access_token } }) }}"

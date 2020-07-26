@@ -1,0 +1,32 @@
+{# SPDX-License-Identifier: Apache-2.0 #}
+{
+    "msp_id": "{{ organization.msp.id }}",
+    "tls_cert": "{{ lookup('file', organization.wallet + '/tls-root.pem') | b64encode }}",
+    "config": {
+        "enrollment": {
+            "component": {
+                "cahost": "{{ ibp[organization.ca.id].hostname }}",
+                "caport": "{{ ibp[organization.ca.id].port }}",
+                "caname": "{{ ibp[organization.ca.id].caname }}",
+                "catls": {
+                    "cacert": "{{ lookup('file', organization.wallet + '/ca-tls-root.pem') | b64encode }}"
+                },
+                "enrollid": "{{ peer.identity  }}",
+                "enrollsecret": "{{ peer.secret }}",
+                "admincerts": {{ ibp[organization.msp.id].admin_certificates }}
+            },
+            "tls": {
+                "cahost": "{{ ibp[organization.ca.id].hostname }}",
+                "caport": "{{ ibp[organization.ca.id].port }}",
+                "caname": "{{ ibp[organization.ca.id].tlscaname }}",
+                "catls": {
+                    "cacert": "{{ lookup('file', organization.wallet + '/ca-tls-root.pem') | b64encode }}"
+                },
+                "enrollid": "{{ peer.tls.identity }}",
+                "enrollsecret": "{{ peer.tls.secret }}"
+            }
+        }
+    },
+    "display_name": "{{ peer.ibp.display_name }}",
+    "db_type": "{{ 'couchdb' if peer.database_type is defined and peer.database_type == 'couchdb' else 'leveldb' }}"
+}

@@ -1,0 +1,37 @@
+sudo: required
+language: minimal
+services:
+- docker
+dist: xenial
+cache:
+  directories:
+  - exporter/node_modules
+script:
+- cd exporter && make build
+- make test
+- cd ../importer && make build
+- make test
+- cd ../regulator && make build
+- make test
+before_deploy:
+- docker login -u $DOCKER_USERNAME -p $DOCKER_PASSWORD
+- cd exporter && make package
+- cd && cd importer && make package
+- cd && cd regulator && make package
+deploy:
+  - provider: script
+    script: cd exporter && make release
+    on:
+      branch: master
+      tags: true
+  - provider: script
+    script: cd && cd importer && make release
+    on:
+      branch: master
+      tags: true
+  - provider: script
+    script: cd && cd regulator && make release
+    on:
+      branch: master
+      tags: true
+

@@ -1,0 +1,36 @@
+#
+# SPDX-License-Identifier: Apache-2.0
+#
+---
+- name: Retrieve current installed contract list
+  command: peer lifecycle chaincode queryinstalled -O json --connTimeout 300s
+  environment:
+    FABRIC_CFG_PATH: "{{ role_path }}/files/sampleconfig"
+    CORE_PEER_ADDRESS: "{{ ibp[peer.id].hostname }}:{{ ibp[peer.id].port }}"
+    CORE_PEER_MSPCONFIGPATH: "{{ member.wallet }}/{{ member.msp.admin.identity }}"
+    CORE_PEER_LOCALMSPID: "{{ member.msp.id }}"
+    CORE_PEER_TLS_ENABLED: "{{ 'true' if peer.tls.enabled else 'false' }}"
+    CORE_PEER_TLS_ROOTCERT_FILE: "{{ ibp[peer.id].pem if ibp[peer.id].pem is defined }}"
+  register: queryinstalled
+  failed_when: False
+  changed_when: False
+
+- name: Determine if peer has contract installed
+  set_fact:
+    installed_chaincodes: "{{
+        (queryinstalled.stdout | from_json).installed_chaincodes |
+        default([]) |
+        selectattr('package_id', 'equalto', package_id) |
+        list
+    }}"
+
+- name: Install contract on peer
+  command: peer lifecycle chaincode install "{{ contract.package }}" --connTimeout 300s
+  environment:
+    FABRIC_CFG_PATH: "{{ role_path }}/files/sampleconfig"
+    CORE_PEER_ADDRESS: "{{ ibp[peer.id].hostname }}:{{ ibp[peer.id].port }}"
+    CORE_PEER_MSPCONFIGPATH: "{{ member.wallet }}/{{ member.msp.admin.identity }}"
+    CORE_PEER_LOCALMSPID: "{{ member.msp.id }}"
+    CORE_PEER_TLS_ENABLED: "{{ 'true' if peer.tls.enabled else 'false' }}"
+    CORE_PEER_TLS_ROOTCERT_FILE: "{{ ibp[peer.id].pem if ibp[peer.id].pem is defined }}"
+  when: not installed_chaincodes

@@ -1,0 +1,47 @@
+#
+# SPDX-License-Identifier: Apache-2.0
+#
+
+################################################################################
+#
+#   Section: Organizations
+#
+#   - This section defines the different organizational identities which will
+#   be referenced later in the configuration.
+#
+################################################################################
+Organizations:
+
+    - &ExportingEntityOrg
+        # DefaultOrg defines the organization which is used in the sampleconfig
+        # of the fabric.git development environment
+        Name: ExportingEntityOrg
+
+        # ID to load the MSP definition as
+        ID: ExportingEntityOrgMSP
+
+        MSPDir: ../crypto-config/peerOrganizations/exportingentityorg.trade.com/msp
+
+        # Policies defines the set of policies at this level of the config tree
+        # For organization policies, their canonical path is usually
+        #   /Channel/<Application|Orderer>/<OrgName>/<PolicyName>
+        Policies:
+            Readers:
+                Type: Signature
+                Rule: "OR('ExportingEntityOrgMSP.admin', 'ExportingEntityOrgMSP.peer', 'ExportingEntityOrgMSP.client')"
+            Writers:
+                Type: Signature
+                Rule: "OR('ExportingEntityOrgMSP.admin', 'ExportingEntityOrgMSP.client')"
+            Admins:
+                Type: Signature
+                Rule: "OR('ExportingEntityOrgMSP.admin')"
+            Endorsement:
+                Type: Signature
+                Rule: "OR('ExportingEntityOrgMSP.peer')"
+
+        AnchorPeers:
+            # AnchorPeers defines the location of peers which can be used
+            # for cross org gossip communication.  Note, this value is only
+            # encoded in the genesis block in the Application section context
+            - Host: peer0.exportingentityorg.trade.com
+              Port: 12051

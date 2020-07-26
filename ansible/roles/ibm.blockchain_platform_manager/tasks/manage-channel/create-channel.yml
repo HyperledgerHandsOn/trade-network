@@ -1,0 +1,67 @@
+#
+# SPDX-License-Identifier: Apache-2.0
+#
+---
+- name: Create channel configuration update
+  copy:
+    content: "{{ lookup('template', 'manage-channel/fabric-channel-config-update.json.j2') }}"
+    dest: "{{ tempdir.path }}/config_update.json"
+
+- name: Create channel configuration update envelope
+  copy:
+    content: "{{ lookup('template', 'manage-channel/fabric-config-envelope.json.j2') }}"
+    dest: "{{ tempdir.path }}/config_update_as_envelope.json"
+
+- name: Encode channel configuration update envelope
+  command: >
+    configtxlator proto_encode
+    --type=common.Envelope
+    --input={{ tempdir.path }}/config_update_as_envelope.json
+    --output={{ tempdir.path }}/config_update_as_envelope.pb
+  changed_when: True
+
+- name: Sign channel configuration update envelope
+  command: peer channel signconfigtx -f {{ tempdir.path }}/config_update_as_envelope.pb
+  environment:
+    FABRIC_CFG_PATH: "{{ role_path }}/files/sampleconfig"
+    CORE_PEER_MSPCONFIGPATH: "{{ member.wallet }}/{{ member.msp.admin.identity }}"
+    CORE_PEER_LOCALMSPID: "{{ member.msp.id }}"
+  with_items: "{{ channel.members }}"
+  loop_control:
+    loop_var: member
+  changed_when: True
+
+- name: Submit channel configuration update envelope
+  command: >
+    peer channel update
+    -f {{ tempdir.path }}/config_update_as_envelope.pb
+    -o {{ ibp[channel.orderer.id].hostname }}:{{ ibp[channel.orderer.id].port }}
+    -c {{ channel.name }}
+    {{ '--tls' if ibp[channel.orderer.id].protocol == 'grpcs' else '' }}
+    {{ '--cafile "' + ibp[channel.orderer.id].pem + '"' if ibp[channel.orderer.id].protocol == 'grpcs' else '' }}
+    {{ '--ordererTLSHostnameOverride ' + ibp[channel.orderer.id].internal_hostname if ibp[channel.orderer.id].internal_hostname is defined else '' }}
+  environment:
+    FABRIC_CFG_PATH: "{{ role_path }}/files/sampleconfig"
+    CORE_PEER_MSPCONFIGPATH: "{{ channel.members[0].wallet }}/{{ channel.members[0].msp.admin.identity }}"
+    CORE_PEER_LOCALMSPID: "{{ channel.members[0].msp.id }}"
+  changed_when: True
+
+- name: Wait for channel to start
+  command: >
+    peer channel fetch
+    0
+    /dev/null
+    -o {{ ibp[channel.orderer.id].hostname }}:{{ ibp[channel.orderer.id].port }}
+    -c {{ channel.name }}
+    {{ '--tls' if ibp[channel.orderer.id].protocol == 'grpcs' else '' }}
+    {{ '--cafile "' + ibp[channel.orderer.id].pem + '"' if ibp[channel.orderer.id].protocol == 'grpcs' else '' }}
+    {{ '--ordererTLSHostnameOverride ' + ibp[channel.orderer.id].internal_hostname if ibp[channel.orderer.id].internal_hostname is defined else '' }}
+  environment:
+    FABRIC_CFG_PATH: "{{ role_path }}/files/sampleconfig"
+    CORE_PEER_MSPCONFIGPATH: "{{ channel.members[0].wallet }}/{{ channel.members[0].msp.admin.identity }}"
+    CORE_PEER_LOCALMSPID: "{{ channel.members[0].msp.id }}"
+  register: channel_fetch
+  until: channel_fetch.rc == 0
+  retries: 60
+  delay: 1
+  changed_when: True

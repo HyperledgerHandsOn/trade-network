@@ -1,0 +1,246 @@
+#
+# SPDX-License-Identifier: Apache-2.0
+#
+---
+- name: Ensure Docker network exists
+  docker_network:
+    name: "{{ infrastructure.docker.network }}"
+    state: present
+
+- name: Register the user for the orderer
+  include_tasks: register-user.yml
+  vars:
+    protocol: "{{ ibp[organization.ca.id].protocol }}"
+    hostname: "{{ ibp[organization.ca.id].hostname }}"
+    port: "{{ ibp[organization.ca.id].port }}"
+    caname: "{{ ibp[organization.ca.id].caname }}"
+    identity: "{{ orderer.identity }}"
+    secret: "{{ orderer.secret }}"
+    type: peer
+    registrar: "{{ organization.ca.admin_identity }}"
+
+- name: Enroll the user for the orderer
+  include_tasks: enroll-user.yml
+  vars:
+    protocol: "{{ ibp[organization.ca.id].protocol }}"
+    hostname: "{{ ibp[organization.ca.id].hostname }}"
+    port: "{{ ibp[organization.ca.id].port }}"
+    caname: "{{ ibp[organization.ca.id].caname }}"
+    identity: "{{ orderer.identity }}"
+    secret: "{{ orderer.secret }}"
+    msp_id: "{{ organization.msp.id }}"
+    private: true
+
+- name: Register the TLS user for the orderer
+  include_tasks: register-tls-user.yml
+  vars:
+    protocol: "{{ ibp[organization.ca.id].protocol }}"
+    hostname: "{{ ibp[organization.ca.id].hostname }}"
+    port: "{{ ibp[organization.ca.id].port }}"
+    caname: "{{ ibp[organization.ca.id].tlscaname }}"
+    identity: "{{ orderer.tls.identity }}"
+    secret: "{{ orderer.tls.secret }}"
+    type: orderer
+    registrar: "{{ organization.ca.admin_identity }}"
+  when: orderer.tls.enabled
+
+- name: Enroll the TLS user for the orderer
+  include_tasks: enroll-tls-user.yml
+  vars:
+    protocol: "{{ ibp[organization.ca.id].protocol }}"
+    hostname: "{{ ibp[organization.ca.id].hostname }}"
+    port: "{{ ibp[organization.ca.id].port }}"
+    caname: "{{ ibp[organization.ca.id].tlscaname }}"
+    identity: "{{ orderer.tls.identity }}"
+    secret: "{{ orderer.tls.secret }}"
+    hostnames: "{{ orderer.docker.hostname }},localhost"
+  when: orderer.tls.enabled
+
+- name: Add admin user for the MSP to the orderer
+  copy:
+    src: "{{ organization.wallet }}/{{ organization.msp.admin.identity }}/signcerts/"
+    dest: "{{ organization.wallet }}/{{ orderer.identity }}/admincerts/"
+
+- name: Add TLS CA root certificates for the MSP to the orderer
+  copy:
+    src: "{{ organization.wallet }}/tls-root.pem"
+    dest: "{{ organization.wallet }}/{{ orderer.identity }}/tlscacerts/"
+  when: orderer.tls.enabled
+
+- name: Add configuration for the MSP to the orderer
+  copy:
+    content: |
+      NodeOUs:
+          Enable: false
+    dest: "{{ organization.wallet }}/{{ orderer.identity }}/config.yaml"
+
+- name: Create orderer MSP volume
+  docker_volume:
+    name: "{{ orderer.docker.name }}-msp"
+    state: present
+    labels: "{{ infrastructure.docker.labels | default(omit) }}"
+
+- name: Create orderer TLS volume
+  docker_volume:
+    name: "{{ orderer.docker.name }}-tls"
+    state: present
+    labels: "{{ infrastructure.docker.labels | default(omit) }}"
+
+- name: Create orderer data volume
+  docker_volume:
+    name: "{{ orderer.docker.name }}-data"
+    state: present
+    labels: "{{ infrastructure.docker.labels | default(omit) }}"
+
+- name: Start orderer container
+  docker_container:
+    name: "{{ orderer.docker.name }}"
+    image: hyperledger/fabric-orderer:2.1.0
+    networks:
+      - name: "{{ infrastructure.docker.network }}"
+        aliases:
+          - "{{ orderer.docker.hostname | mandatory }}"
+    networks_cli_compatible: yes
+    hostname: "{{ orderer.docker.hostname | mandatory }}"
+    env:
+      ORDERER_GENERAL_BOOTSTRAPMETHOD: file
+      ORDERER_GENERAL_BOOTSTRAPFILE: /var/hyperledger/production/genesis.block
+      ORDERER_GENERAL_LISTENADDRESS: 0.0.0.0
+      ORDERER_GENERAL_LISTENPORT: "{{ orderer.docker.port }}"
+      ORDERER_GENERAL_LOCALMSPID: "{{ organization.msp.id }}"
+      ORDERER_GENERAL_SYSTEMCHANNEL: system-channel
+      ORDERER_GENERAL_TLS_ENABLED: "{{ 'true' if orderer.tls.enabled else 'false' }}"
+      ORDERER_OPERATIONS_LISTENADDRESS: 0.0.0.0:{{ orderer.docker.operations_port }}
+      ORDERER_OPERATIONS_TLS_ENABLED: "{{ 'true' if orderer.tls.enabled else 'false' }}"
+      ORDERER_OPERATIONS_TLS_CERTIFICATE: /etc/hyperledger/fabric/tls/server.crt
+      ORDERER_OPERATIONS_TLS_PRIVATEKEY: /etc/hyperledger/fabric/tls/server.key
+      ORDERER_OPERATIONS_TLS_CLIENTROOTCAS: /etc/hyperledger/fabric/tls/ca.crt
+      ORDERER_METRICS_PROVIDER: prometheus
+    published_ports:
+      - "{{ orderer.docker.port }}:{{ orderer.docker.port }}"
+      - "{{ orderer.docker.operations_port }}:{{ orderer.docker.operations_port }}"
+    volumes:
+      - "{{ orderer.docker.name }}-msp:/etc/hyperledger/fabric/msp"
+      - "{{ orderer.docker.name }}-tls:/etc/hyperledger/fabric/tls"
+      - "{{ orderer.docker.name }}-data:/var/hyperledger/production"
+    state: started
+    labels: "{{ infrastructure.docker.labels | default(omit) }}"
+
+- name: Compare the orderer user enrollment with orderer container
+  shell: >
+    set -o pipefail &&
+    tar cf - -C "{{ organization.wallet }}/{{ orderer.identity }}" . |
+    docker exec -i {{ orderer.docker.name }} sh -c "
+      cat >/tmp/msp.tar &&
+      rm -rf /tmp/msp &&
+      mkdir /tmp/msp &&
+      cd /tmp/msp &&
+      tar xf /tmp/msp.tar &&
+      find . -type f -exec sha256sum {} \; > /tmp/msp.sums &&
+      cd /etc/hyperledger/fabric/msp &&
+      sha256sum -c /tmp/msp.sums"
+  args:
+    executable: /bin/bash
+  register: check_orderer_msp
+  failed_when: False
+  changed_when: False
+
+- name: Copy the orderer user enrollment into orderer container
+  command: >
+    docker cp
+    "{{ organization.wallet }}/{{ orderer.identity }}/."
+    {{ orderer.docker.name }}:/etc/hyperledger/fabric/msp/
+  when: check_orderer_msp.rc != 0
+
+- name: Compare the orderer TLS user enrollment with orderer container
+  shell: >
+    set -o pipefail &&
+    tar cf - -C "{{ organization.wallet }}/{{ orderer.tls.identity }}" . |
+    docker exec -i {{ orderer.docker.name }} sh -c "
+      cat >/tmp/tls.tar &&
+      rm -rf /tmp/tls &&
+      mkdir /tmp/tls &&
+      cd /tmp/tls &&
+      tar xf /tmp/tls.tar &&
+      find . -type f -exec sha256sum {} \; > /tmp/tls.sums &&
+      cd /etc/hyperledger/fabric/tls &&
+      sha256sum -c /tmp/tls.sums"
+  args:
+    executable: /bin/bash
+  register: check_orderer_tls
+  failed_when: False
+  changed_when: False
+  when: orderer.tls.enabled
+
+- name: Copy the orderer TLS user enrollment into orderer container
+  command: >
+    docker cp
+    "{{ organization.wallet }}/{{ orderer.tls.identity }}/."
+    {{ orderer.docker.name }}:/etc/hyperledger/fabric/tls/
+  when: orderer.tls.enabled and check_orderer_tls.rc != 0
+
+- name: Test for orderer genesis block in orderer container
+  command: >
+    docker exec {{ orderer.docker.name }} test -d /var/hyperledger/production/orderer/chains/system-channel
+  register: check_orderer_genesis_block
+  failed_when: False
+  changed_when: False
+
+- name: Create orderer genesis block configuration file
+  copy:
+    content: "{{ lookup('template', 'docker/configtx.yaml.j2') }}"
+    dest: "{{ tempdir.path }}/configtx.yaml"
+  when: check_orderer_genesis_block.rc != 0
+
+- name: Create orderer genesis block
+  command: >
+    configtxgen
+    -configPath {{ tempdir.path }}
+    -profile Solo
+    -channelID system-channel
+    -outputBlock {{ tempdir.path }}/genesis.block
+  when: check_orderer_genesis_block.rc != 0
+
+- name: Copy the orderer genesis block into orderer container
+  command: >
+    docker cp
+    {{ tempdir.path }}/genesis.block
+    {{ orderer.docker.name }}:/var/hyperledger/production/
+  when: check_orderer_genesis_block.rc != 0
+
+- name: Restart orderer container
+  docker_container:
+    name: "{{ orderer.docker.name }}"
+    state: started
+    restart: yes
+  when: check_orderer_msp.rc != 0 or (orderer.tls.enabled and check_orderer_tls.rc != 0) or check_orderer_genesis_block.rc != 0
+
+- name: Wait for orderer to start
+  uri:
+    url: "{{ 'https' if orderer.tls.enabled else 'http' }}://localhost:{{ orderer.docker.operations_port }}/healthz"
+    status_code: "200"
+    validate_certs: no
+  register: result
+  until: result.status == 200
+  retries: 60
+  delay: 1
+
+- name: Update orderer facts
+  set_fact:
+    ibp: "{{
+      ibp |
+      combine({
+        orderer.id: {
+          'protocol': 'grpcs' if orderer.tls.enabled else 'grpc',
+          'hostname': 'localhost',
+          'internal_hostname': orderer.docker.hostname,
+          'port': orderer.docker.port,
+          'pem': organization.wallet + '/tls-root.pem' if orderer.tls.enabled else ''
+        }
+      }, recursive=True)
+    }}"
+
+- name: Create node JSON file
+  copy:
+    content: "{{ lookup('template', 'docker/orderer-node.json.j2') | to_nice_json }}"
+    dest: "{{ organization.nodes }}/{{ orderer.id }}.json"

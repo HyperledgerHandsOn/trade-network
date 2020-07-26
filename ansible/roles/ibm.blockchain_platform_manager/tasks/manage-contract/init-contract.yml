@@ -1,0 +1,31 @@
+#
+# SPDX-License-Identifier: Apache-2.0
+#
+---
+- name: Select member to use for init operation
+  set_fact:
+    member: "{{ definition.endorsing_members[0] }}"
+
+- name: Select peer to use for commit operation
+  set_fact:
+    peer: "{{ member.endorsing_peers[0] }}"
+
+- name: Initialize contract
+  command: >
+    peer chaincode invoke --isInit --waitForEvent
+    -C {{ channel.name }}
+    -n {{ definition.name }}
+    -c '{{ definition.init }}'
+    -o {{ ibp[channel.orderer.id].hostname }}:{{ ibp[channel.orderer.id].port }}
+    --connTimeout 300s
+    {{ '--tls' if ibp[channel.orderer.id].protocol == 'grpcs' else '' }}
+    {{ '--cafile "' + ibp[channel.orderer.id].pem + '"' if ibp[channel.orderer.id].protocol == 'grpcs' else '' }}
+    {{ '--ordererTLSHostnameOverride ' + ibp[channel.orderer.id].internal_hostname if ibp[channel.orderer.id].internal_hostname is defined else '' }}
+  environment:
+      CORE_PEER_ADDRESS: "{{ ibp[peer.id].hostname }}:{{ ibp[peer.id].port }}"
+      CORE_PEER_MSPCONFIGPATH: "{{ member.wallet }}/{{ member.msp.admin.identity }}"
+      CORE_PEER_LOCALMSPID: "{{ member.msp.id }}"
+      CORE_PEER_TLS_ENABLED: "{{ 'true' if peer.tls.enabled else 'false' }}"
+      CORE_PEER_TLS_ROOTCERT_FILE: "{{ ibp[peer.id].pem if ibp[peer.id].pem is defined }}"
+  when: definition.init is defined
+  changed_when: True

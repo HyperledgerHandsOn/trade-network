@@ -1,0 +1,14 @@
+{
+    "BatchSize": {
+        "value": {
+            "absolute_max_bytes": {{ orderer.block_configuration.absolute_max_bytes | default(10485760) }},
+            "max_message_count": {{ orderer.block_configuration.max_message_count | default(500) }},
+            "preferred_max_bytes": {{ orderer.block_configuration.preferred_max_bytes | default(2097152) }}
+        }
+    },
+    "BatchTimeout": {
+        "value": {
+            "timeout": "{{ orderer.block_configuration.timeout | default('2s') }}"
+        }
+    }
+}

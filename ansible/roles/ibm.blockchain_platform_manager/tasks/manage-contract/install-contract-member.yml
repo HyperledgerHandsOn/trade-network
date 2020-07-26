@@ -1,0 +1,9 @@
+#
+# SPDX-License-Identifier: Apache-2.0
+#
+---
+- name: Install contract on all peers
+  include_tasks: install-contract-peer.yml
+  with_items: "{{ member.endorsing_peers }}"
+  loop_control:
+      loop_var: peer

@@ -1,0 +1,17 @@
+{# SPDX-License-Identifier: Apache-2.0 #}
+{
+    "short_name": "{{ ca.id }}",
+    "name": "{{ ca.ibp.display_name }}",
+    "api_url": "{{ ibp[ca.id].protocol }}://{{ ibp[ca.id].hostname }}:{{ ibp[ca.id].port }}",
+    {% if ibp[ca.id].protocol == 'https' %}
+    "pem": "{{ lookup('file', ibp[ca.id].pem) | b64encode }}",
+    {% endif %}
+    "ca_name": "{{ ibp[ca.id].caname }}",
+    {% if ibp[ca.id].protocol == 'https' %}
+    "tlsca_name": "{{ ibp[ca.id].tlscaname }}",
+    {% endif %}
+    "type": "fabric-ca",
+    "msp_id": "{{ organization.msp.id }}",
+    "wallet": "{{ organization.wallet | basename }}",
+    "identity": "{{ organization.ca.admin_identity }}"
+}

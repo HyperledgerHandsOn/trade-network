@@ -1,0 +1,25 @@
+#
+# SPDX-License-Identifier: Apache-2.0
+#
+---
+- name: Retrieve channel genesis block
+  command: >
+    peer channel fetch
+    0 {{ tempdir.path }}/config_block.pb
+    -o {{ ibp[channel.orderer.id].hostname }}:{{ ibp[channel.orderer.id].port }}
+    -c {{ channel.name }}
+    {{ '--tls' if ibp[channel.orderer.id].protocol == 'grpcs' else '' }}
+    {{ '--cafile "' + ibp[channel.orderer.id].pem + '"' if ibp[channel.orderer.id].protocol == 'grpcs' else '' }}
+    {{ '--ordererTLSHostnameOverride ' + ibp[channel.orderer.id].internal_hostname if ibp[channel.orderer.id].internal_hostname is defined else '' }}
+  environment:
+    FABRIC_CFG_PATH: "{{ role_path }}/files/sampleconfig"
+    CORE_PEER_MSPCONFIGPATH: "{{ channel.members[0].wallet }}/{{ channel.members[0].msp.admin.identity }}"
+    CORE_PEER_LOCALMSPID: "{{ channel.members[0].msp.id }}"
+  changed_when: False
+
+- name: Join all members to channel
+  include_tasks: join-channel-member.yml
+  when: member.committing_peers is defined
+  with_items: "{{ channel.members }}"
+  loop_control:
+      loop_var: member

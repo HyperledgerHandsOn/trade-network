@@ -1,0 +1,6 @@
+{
+    "files.associations": {
+        "**/*.yml": "ansible",
+        "azure-pipelines.yml": "yaml"
+    }
+}

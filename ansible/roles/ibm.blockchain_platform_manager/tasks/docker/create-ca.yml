@@ -1,0 +1,85 @@
+#
+# SPDX-License-Identifier: Apache-2.0
+#
+---
+- name: Ensure Docker network exists
+  docker_network:
+    name: "{{ infrastructure.docker.network }}"
+    state: present
+
+- name: Create certificate authority volume
+  docker_volume:
+    name: "{{ ca.docker.name }}"
+    state: present
+    labels: "{{ infrastructure.docker.labels | default(omit) }}"
+
+- name: Create certificate authority container
+  docker_container:
+    name: "{{ ca.docker.name }}"
+    image: hyperledger/fabric-ca:1.4.6
+    networks:
+      - name: "{{ infrastructure.docker.network }}"
+        aliases:
+          - "{{ ca.docker.hostname | mandatory }}"
+    networks_cli_compatible: yes
+    hostname: "{{ ca.docker.hostname | mandatory }}"
+    command: sh -c 'fabric-ca-server start -b {{ ca.admin_identity }}:{{ ca.admin_secret }}'
+    env:
+      FABRIC_CA_SERVER_CA_NAME: "ca"
+      FABRIC_CA_SERVER_PORT: "{{ ca.docker.port }}"
+      FABRIC_CA_SERVER_TLS_ENABLED: "{{ 'true' if ca.tls.enabled else 'false' }}"
+    published_ports:
+      - "{{ ca.docker.port }}:{{ ca.docker.port }}"
+    volumes:
+      - "{{ ca.docker.name }}:/etc/hyperledger"
+    state: started
+    labels: "{{ infrastructure.docker.labels | default(omit) }}"
+
+- name: Wait for certificate authority to start
+  uri:
+    url: "{{ 'https' if ca.tls.enabled else 'http' }}://localhost:{{ ca.docker.port }}/cainfo"
+    status_code: "200"
+    validate_certs: no
+  register: result
+  until: result.status == 200
+  retries: 60
+  delay: 1
+
+- name: Copy the CA root certificate
+  copy:
+    content: "{{ result.json.result.CAChain | b64decode }}"
+    dest: "{{ organization.wallet }}/root.pem"
+
+- name: Copy the TLS CA root certificate (for all components)
+  copy:
+    content: "{{ result.json.result.CAChain | b64decode }}"
+    dest: "{{ organization.wallet }}/tls-root.pem"
+  when: ca.tls.enabled
+
+- name: Copy the TLS CA root certificate (for the certificate authority component)
+  copy:
+    content: "{{ result.json.result.CAChain | b64decode }}"
+    dest: "{{ organization.wallet }}/ca-tls-root.pem"
+  when: ca.tls.enabled
+
+- name: Update certificate authority facts
+  set_fact:
+    ibp: "{{
+      ibp |
+      combine({
+        ca.id: {
+          'protocol': 'https' if ca.tls.enabled else 'http',
+          'hostname': 'localhost',
+          'internal_hostname': ca.docker.hostname,
+          'port': ca.docker.port,
+          'pem': organization.wallet + '/tls-root.pem' if ca.tls.enabled else '',
+          'caname': 'ca',
+          'tlscaname': 'ca'
+        }
+      }, recursive=True)
+    }}"
+
+- name: Create node JSON file
+  copy:
+    content: "{{ lookup('template', 'docker/ca-node.json.j2') | to_nice_json }}"
+    dest: "{{ organization.nodes }}/{{ ca.id }}.json"

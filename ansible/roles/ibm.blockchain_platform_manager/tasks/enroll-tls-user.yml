@@ -1,0 +1,67 @@
+#
+# SPDX-License-Identifier: Apache-2.0
+#
+---
+- name: Determine identity directory
+  set_fact:
+    identity_directory: "{{
+      organization.wallet +
+      '/' +
+      caname +
+      '/' +
+      identity if caname != ibp[organization.ca.id].caname else organization.wallet +
+      '/' +
+      identity
+    }}"
+
+- name: Check to see if the TLS user has been enrolled
+  stat:
+    path: "{{ identity_directory }}"
+  register: identity_directory_stats
+
+- name: Enroll the TLS user
+  command: >
+    fabric-ca-client enroll
+    --enrollment.profile tls
+    --csr.hosts {{ hostnames }}
+    -u {{ protocol }}://{{ identity }}:{{ secret }}@{{ hostname }}:{{ port }}
+    --caname {{ caname }}
+    -M "{{ identity_directory }}-temp"
+    {% if protocol == "https" %}--tls.certfiles "{{ organization.wallet }}/ca-tls-root.pem"{% endif %}
+  when: not identity_directory_stats.stat.exists
+
+- name: Create the TLS directory
+  file:
+    path: "{{ identity_directory }}"
+    state: directory
+  when: not identity_directory_stats.stat.exists
+
+- name: Copy the TLS CA root certificate
+  copy:
+    src: "{{ item }}"
+    dest: "{{ identity_directory }}/ca.crt"
+  with_fileglob:
+    - "{{ identity_directory }}-temp/tlscacerts/*.pem"
+  when: not identity_directory_stats.stat.exists
+
+- name: Copy the TLS certificate
+  copy:
+    src: "{{ item }}"
+    dest: "{{ identity_directory }}/server.crt"
+  with_fileglob:
+    - "{{ identity_directory }}-temp/signcerts/*.pem"
+  when: not identity_directory_stats.stat.exists
+
+- name: Copy the TLS private key
+  copy:
+    src: "{{ item }}"
+    dest: "{{ identity_directory }}/server.key"
+  with_fileglob:
+    - "{{ identity_directory }}-temp/keystore/*_sk"
+  when: not identity_directory_stats.stat.exists
+
+- name: Delete the temporary TLS directory
+  file:
+    path: "{{ identity_directory }}-temp"
+    state: absent
+  when: not identity_directory_stats.stat.exists

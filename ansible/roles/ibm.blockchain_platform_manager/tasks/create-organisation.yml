@@ -1,0 +1,41 @@
+#
+# SPDX-License-Identifier: Apache-2.0
+#
+---
+- name: Create nodes directory
+  file:
+    path: "{{ organization.nodes }}"
+    state: directory
+
+- name: Create wallet directory
+  file:
+    path: "{{ organization.wallet }}"
+    state: directory
+
+- name: Create gateways directory
+  file:
+    path: "{{ organization.gateways }}"
+    state: directory
+
+- name: Create certificate authority
+  include_tasks: "{{ infrastructure.type }}/create-ca.yml"
+  vars:
+    ca: "{{ organization.ca }}"
+
+- name: Create MSP
+  include_tasks: create-msp.yml
+  vars:
+    msp: "{{ organization.msp }}"
+
+- name: Create all peers
+  include_tasks: "{{ infrastructure.type }}/create-peer.yml"
+  with_items: "{{ organization.peers }}"
+  loop_control:
+    loop_var: peer
+  when: organization.peers is defined
+
+- name: Create orderer
+  include_tasks: "{{ infrastructure.type }}/create-orderer.yml"
+  vars:
+    orderer: "{{ organization.orderer }}"
+  when: organization.orderer is defined

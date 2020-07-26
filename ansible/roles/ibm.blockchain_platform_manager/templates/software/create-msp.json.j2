@@ -1,0 +1,8 @@
+{# SPDX-License-Identifier: Apache-2.0 #}
+{
+  "msp_id": "{{ organization.msp.id }}",
+  "display_name": "{{ organization.msp.ibp.display_name }}",
+  "root_certs": {{ ibp[organization.msp.id].root_certificates }},
+  "admins": {{ ibp[organization.msp.id].admin_certificates }},
+  "tls_root_certs": {{ ibp[organization.msp.id].tls_root_certificates if ibp[organization.msp.id].tls_root_certificates is defined else [] }},
+}

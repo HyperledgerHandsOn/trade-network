@@ -1,0 +1,21 @@
+{
+    "name": "Trade Network",
+    "version": "1.0.0",
+    "client": {
+        "organization": "MSP",
+        "connection": {
+            "timeout": {
+                "peer": {
+                    "endorser": "300"
+                },
+                "orderer": "300"
+            }
+        }
+    },
+    "organizations": {
+    },
+    "peers": {
+    },
+    "certificateAuthorities": {
+    }
+}

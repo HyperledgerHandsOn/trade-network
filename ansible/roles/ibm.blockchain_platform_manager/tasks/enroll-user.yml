@@ -1,0 +1,46 @@
+#
+# SPDX-License-Identifier: Apache-2.0
+#
+---
+- name: Determine identity directory
+  set_fact:
+    identity_directory: "{{
+      organization.wallet +
+      '/' + caname +
+      '/' +
+      identity if caname != ibp[organization.ca.id].caname else organization.wallet +
+      '/' +
+      identity
+    }}"
+
+- name: Check to see if the user has been enrolled
+  stat:
+    path: "{{ identity_directory }}"
+  register: identity_directory_stats
+
+- name: Enroll the user
+  command: >
+    fabric-ca-client enroll
+    -u {{ protocol }}://{{ identity }}:{{ secret }}@{{ hostname }}:{{ port }}
+    --caname {{ caname }}
+    -M "{{ identity_directory }}"
+    {% if protocol == "https" %}--tls.certfiles "{{ organization.wallet }}/ca-tls-root.pem"{% endif %}
+  when: not identity_directory_stats.stat.exists
+
+- name: Load user certificate
+  set_fact:
+    certificate: "{{ lookup('file', item) }}"
+  with_fileglob:
+    - "{{ identity_directory }}/signcerts/*.pem"
+
+- name: Load user private key
+  set_fact:
+    private_key: "{{ lookup('file', item) }}"
+  with_fileglob:
+    - "{{ identity_directory }}/keystore/*_sk"
+
+- name: Create identity JSON file
+  copy:
+    content: "{{ lookup('template', 'identity.json.j2') | to_nice_json }}"
+    dest: "{{ identity_directory }}.json"
+  when: private is not defined or not private

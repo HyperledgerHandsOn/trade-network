@@ -1,0 +1,34 @@
+#
+# SPDX-License-Identifier: Apache-2.0
+#
+---
+- name: Get the list of components
+  uri:
+    url: "{{ infrastructure.software.api_endpoint }}/ak/api/v1/components?skip_cache=yes"
+    url_username: "{{ infrastructure.software.api_key }}"
+    url_password: "{{ infrastructure.software.api_secret }}"
+    method: GET
+    return_content: yes
+    validate_certs: no
+  register: ibp_components
+
+- name: Check for peer
+  set_fact:
+    ibp_peer_count: "{{
+      ibp_components.json |
+      selectattr('display_name', 'defined') |
+      selectattr('display_name', 'eq', peer.ibp.display_name) |
+      list
+    }}"
+
+- name: Delete peer
+  uri:
+    url: "{{ infrastructure.software.api_endpoint }}/ak/api/v1/kubernetes/components/{{ ibp_peer.id }}"
+    url_username: "{{ infrastructure.software.api_key }}"
+    url_password: "{{ infrastructure.software.api_secret }}"
+    method: DELETE
+    validate_certs: no
+  changed_when: True
+  with_items: "{{ ibp_peer_count }}"
+  loop_control:
+    loop_var: ibp_peer

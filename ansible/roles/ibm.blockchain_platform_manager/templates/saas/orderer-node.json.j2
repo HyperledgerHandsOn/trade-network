@@ -1,0 +1,13 @@
+{# SPDX-License-Identifier: Apache-2.0 #}
+{
+    "short_name": "{{ orderer.id }}",
+    "name": "{{ orderer.ibp.display_name }}",
+    "api_url": "{{ ibp[orderer.id].protocol }}://{{ ibp[orderer.id].hostname }}:{{ ibp[orderer.id].port }}",
+    {% if ibp[orderer.id].protocol == 'grpcs' %}
+    "pem": "{{ lookup('file', ibp[orderer.id].pem) | b64encode }}",
+    {% endif %}
+    "type": "fabric-orderer",
+    "msp_id": "{{ organization.msp.id }}",
+    "wallet": "{{ organization.wallet | basename }}",
+    "identity": "{{ organization.msp.admin.identity }}"
+}

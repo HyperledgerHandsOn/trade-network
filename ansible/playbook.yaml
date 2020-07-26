@@ -1,0 +1,422 @@
+#
+# SPDX-License-Identifier: Apache-2.0
+#
+- name: Deploy blockchain infrastructure and smart contracts
+  hosts: localhost
+  vars:
+    source:
+      contracts:
+        trade: "{{ playbook_dir }}/../contracts/v1/trade/dist/trade.tgz"
+        exportlicense: "{{ playbook_dir }}/../contracts/v1/exportLicense/dist/exportLicense.tgz"
+        letterofcredit: "{{ playbook_dir }}/../contracts/v1/letterOfCredit/dist/letterOfCredit.tgz"
+        shipment: "{{ playbook_dir }}/../contracts/v1/shipment/dist/shipment.tgz"
+    output_dir: "{{ playbook_dir }}/.."
+    infrastructure:
+      type: docker
+      docker:
+        network: net_trade
+    organizations:
+      - &ExporterOrg
+        msp:
+          id: "ExporterOrgMSP"
+          admin:
+            identity: "exporterOrgAdmin"
+            secret: "exporterOrgAdminpw"
+          ibp:
+            display_name: "ExporterOrg MSP"
+        ca: &ExporterOrgCA
+          id: "exporterorgca"
+          admin_identity: "admin"
+          admin_secret: "adminpw"
+          tls:
+            enabled: true
+          docker:
+            name: ca.exporterorg.trade.com
+            hostname: ca.exporterorg.trade.com
+            port: 7054
+          ibp:
+            display_name: "ExporterOrg CA"
+        peers:
+          - &ExporterOrgPeer1
+            id: "exporterorgpeer1"
+            identity: "exporterOrgpeer1"
+            secret: "exporterOrgpeer1pw"
+            database_type: couchdb
+            tls:
+              enabled: true
+              identity: "exporterOrgpeer1tls"
+              secret: "exporterOrgpeer1tlspw"
+            docker:
+              name: peer0.exporterorg.trade.com
+              hostname: peer0.exporterorg.trade.com
+              port: 7051
+              chaincode_port: 7052
+              operations_port: 7053
+              couchdb:
+                name: couchdb0.exporterorg.trade.com
+                hostname: couchdb0.exporterorg.trade.com
+                port: 7055
+            ibp:
+              display_name: "ExporterOrg Peer1"
+        nodes: "{{ output_dir }}/nodes/exporterorg"
+        wallet: "{{ output_dir }}/wallets/exporterorg/ExporterOrgMSP"
+        gateways: "{{ output_dir }}/gateways/exporterorg"
+      - &ImporterOrg
+        msp:
+          id: "ImporterOrgMSP"
+          admin:
+            identity: "importerOrgAdmin"
+            secret: "importerOrgAdminpw"
+          ibp:
+            display_name: "ImporterOrg MSP"
+        ca: &ImporterOrgCA
+          id: "importerorgca"
+          admin_identity: "admin"
+          admin_secret: "adminpw"
+          tls:
+            enabled: true
+          docker:
+            name: ca.importerorg.trade.com
+            hostname: ca.importerorg.trade.com
+            port: 8054
+          ibp:
+            display_name: "ImporterOrg CA"
+        peers:
+          - &ImporterOrgPeer1
+            id: "importerorgpeer1"
+            identity: "importerOrgpeer1"
+            secret: "importerOrgpeer1pw"
+            database_type: couchdb
+            tls:
+              enabled: true
+              identity: "importerOrgpeer1tls"
+              secret: "importerOrgpeer1tlspw"
+            docker:
+              name: peer0.importerorg.trade.com
+              hostname: peer0.importerorg.trade.com
+              port: 8051
+              chaincode_port: 8052
+              operations_port: 8053
+              couchdb:
+                name: couchdb0.importerorg.trade.com
+                hostname: couchdb0.importerorg.trade.com
+                port: 8055
+            ibp:
+              display_name: "ImporterOrg Peer1"
+        nodes: "{{ output_dir }}/nodes/importerorg"
+        wallet: "{{ output_dir }}/wallets/importerorg/ImporterOrgMSP"
+        gateways: "{{ output_dir }}/gateways/importerorg"
+      - &CarrierOrg
+        msp:
+          id: "CarrierOrgMSP"
+          admin:
+            identity: "carrierOrgAdmin"
+            secret: "carrierOrgAdminpw"
+          ibp:
+            display_name: "CarrierOrg MSP"
+        ca: &CarrierOrgCA
+          id: "carrierorgca"
+          admin_identity: "admin"
+          admin_secret: "adminpw"
+          tls:
+            enabled: true
+          docker:
+            name: ca.carrierorg.trade.com
+            hostname: ca.carrierorg.trade.com
+            port: 9054
+          ibp:
+            display_name: "CarrierOrg CA"
+        peers:
+          - &CarrierOrgPeer1
+            id: "carrierorgpeer1"
+            identity: "carrierOrgpeer1"
+            secret: "carrierOrgpeer1pw"
+            database_type: couchdb
+            tls:
+              enabled: true
+              identity: "carrierOrgpeer1tls"
+              secret: "carrierOrgpeer1tlspw"
+            docker:
+              name: peer0.carrierorg.trade.com
+              hostname: peer0.carrierorg.trade.com
+              port: 9051
+              chaincode_port: 9052
+              operations_port: 9053
+              couchdb:
+                name: couchdb0.carrierorg.trade.com
+                hostname: couchdb0.carrierorg.trade.com
+                port: 9055
+            ibp:
+              display_name: "CarrierOrg Peer1"
+        nodes: "{{ output_dir }}/nodes/carriercrg"
+        wallet: "{{ output_dir }}/wallets/carrierorg/CarrierOrgMSP"
+        gateways: "{{ output_dir }}/gateways/carrierorg"
+      - &RegulatorOrg
+        msp:
+          id: "RegulatorOrgMSP"
+          admin:
+            identity: "regulatorOrgAdmin"
+            secret: "regulatorOrgAdminpw"
+          ibp:
+            display_name: "RegulatorOrg MSP"
+        ca: &RegulatorOrgCA
+          id: "regulatororgca"
+          admin_identity: "admin"
+          admin_secret: "adminpw"
+          tls:
+            enabled: true
+          docker:
+            name: ca.regulatororg.trade.com
+            hostname: ca.regulatororg.trade.com
+            port: 10054
+          ibp:
+            display_name: "RegulatorOrg CA"
+        peers:
+          - &RegulatorOrgPeer1
+            id: "regulatororgpeer1"
+            identity: "regulatorOrgpeer1"
+            secret: "regulatorOrgpeer1pw"
+            database_type: couchdb
+            tls:
+              enabled: true
+              identity: "regulatorOrgpeer1tls"
+              secret: "regulatorOrgpeer1tlspw"
+            docker:
+              name: peer0.regulatororg.trade.com
+              hostname: peer0.regulatororg.trade.com
+              port: 10051
+              chaincode_port: 10052
+              operations_port: 10053
+              couchdb:
+                name: couchdb0.regulatororg.trade.com
+                hostname: couchdb0.regulatororg.trade.com
+                port: 10055
+            ibp:
+              display_name: "RegulatorOrg Peer1"
+        nodes: "{{ output_dir }}/nodes/regulatororg"
+        wallet: "{{ output_dir }}/wallets/regulatororg/RegulatorOrgMSP"
+        gateways: "{{ output_dir }}/gateways/regulatororg"
+      - &OrdererOrg
+        msp:
+          id: "TradeOrdererOrgMSP"
+          admin:
+            identity: "ordererAdmin"
+            secret: "ordererAdminpw"
+          ibp:
+            display_name: "Orderer Org"
+        ca: &OrdererCA
+          id: "ordererca"
+          admin_identity: "admin"
+          admin_secret: "adminpw"
+          tls:
+            enabled: true
+          docker:
+            name: ca.orderer.trade.com
+            hostname: ca.orderer.trade.com
+            port: 6054
+          ibp:
+            display_name: "Orderer CA"
+        orderer: &Orderer
+          id: "orderer1"
+          identity: "orderer1"
+          secret: "orderer1pw"
+          tls:
+            enabled: true
+            identity: "orderer1tls"
+            secret: "orderer1tlspw"
+          consortium:
+            members:
+              - *ExporterOrg
+              - *ImporterOrg
+              - *RegulatorOrg
+              - *CarrierOrg
+          docker:
+            name: orderer.trade.com
+            hostname: orderer.trade.com
+            port: 7050
+            operations_port: 6053
+          ibp:
+            display_name: "Orderer1"
+            cluster_name: "OrdererCluster"
+        nodes: "{{ output_dir }}/nodes/orderer"
+        wallet: "{{ output_dir }}/wallets/orderer/TradeOrdererOrgMSP"
+        gateways: "{{ output_dir }}/gateways/ordererorg"
+    channels:
+      - &TradeChannel
+        name: tradechannel
+        orderer: *Orderer
+        members:
+          - <<: *ExporterOrg
+            committing_peers:
+              - *ExporterOrgPeer1
+            anchor_peers:
+              - *ExporterOrgPeer1
+          - <<: *ImporterOrg
+            committing_peers:
+              - *ImporterOrgPeer1
+            anchor_peers:
+              - *ImporterOrgPeer1
+          - <<: *RegulatorOrg
+            committing_peers:
+              - *RegulatorOrgPeer1
+            anchor_peers:
+              - *RegulatorOrgPeer1
+      - &ShipmentChannel
+        name: shippingchannel
+        orderer: *Orderer
+        members:
+          - <<: *ExporterOrg
+            committing_peers:
+              - *ExporterOrgPeer1
+            anchor_peers:
+              - *ExporterOrgPeer1
+          - <<: *ImporterOrg
+            committing_peers:
+              - *ImporterOrgPeer1
+            anchor_peers:
+              - *ImporterOrgPeer1
+          - <<: *CarrierOrg
+            committing_peers:
+              - *CarrierOrgPeer1
+            anchor_peers:
+              - *CarrierOrgPeer1
+          - <<: *RegulatorOrg
+            committing_peers:
+              - *RegulatorOrgPeer1
+            anchor_peers:
+              - *RegulatorOrgPeer1
+    contracts:
+      - package: "{{ source.contracts.trade }}"
+        channels:
+          - <<: *TradeChannel
+            definitions:
+              - name: trade
+                version: 1.0.0
+                endorsement_policy: "AND(ExporterOrg.member','ImporterOrg.member')"
+                endorsing_members:
+                  - <<: *ExporterOrg
+                    endorsing_peers:
+                      - <<: *ExporterOrgPeer1
+                  - <<: *ImporterOrg
+                    endorsing_peers:
+                      - <<: *ImporterOrgPeer1
+                  - <<: *RegulatorOrg
+                    endorsing_peers:
+                      - <<: *RegulatorOrgPeer1
+      - package: "{{ source.contracts.exportlicense }}"
+        channels:
+          - <<: *ShipmentChannel
+            definitions:
+              - name: exportLicense
+                version: 1.0.0
+                init: '{"Args":["init","tradechannel","trade","CarrierOrgMSP","RegulatorOrgMSP"]}'
+                endorsement_policy: "AND(ExporterOrg.member','RegulatorOrg.member')"
+                endorsing_members:
+                  - <<: *ExporterOrg
+                    endorsing_peers:
+                      - <<: *ExporterOrgPeer1
+                  - <<: *ImporterOrg
+                    endorsing_peers:
+                      - <<: *ImporterOrgPeer1
+                  - <<: *RegulatorOrg
+                    endorsing_peers:
+                      - <<: *RegulatorOrgPeer1
+      - package: "{{ source.contracts.letterofcredit }}"
+        channels:
+          - <<: *TradeChannel
+            definitions:
+              - name: letterOfCredit
+                version: 1.0.0
+                init: '{"Args":["init", "trade","shippingchannel","shipment","ExporterOrgMSP","LumberBank","100000","ImporterOrgMSP","ToyBank","200000"]}'
+                endorsement_policy: "AND(ExporterOrg.member','ImporterOrg.member')"
+                endorsing_members:
+                  - <<: *ExporterOrg
+                    endorsing_peers:
+                      - <<: *ExporterOrgPeer1
+                  - <<: *ImporterOrg
+                    endorsing_peers:
+                      - <<: *ImporterOrgPeer1
+                  - <<: *RegulatorOrg
+                    endorsing_peers:
+                      - <<: *RegulatorOrgPeer1
+      - package: "{{ source.contracts.shipment }}"
+        channels:
+          - <<: *ShipmentChannel
+            definitions:
+              - name: shipment
+                version: 1.0.0
+                endorsement_policy: "AND(CarrierOrg.member','ExporterOrg.member')"
+                endorsing_members:
+                  - <<: *ExporterOrg
+                    endorsing_peers:
+                      - <<: *ExporterOrgPeer1
+                  - <<: *ImporterOrg
+                    endorsing_peers:
+                      - <<: *ImporterOrgPeer1
+                  - <<: *CarrierOrg
+                    endorsing_peers:
+                      - <<: *CarrierOrgPeer1
+                  - <<: *RegulatorOrg
+                    endorsing_peers:
+                      - <<: *RegulatorOrgPeer1
+    gateways:
+      - name: connection
+        organization:
+          <<: *ExporterOrg
+          gateway_peers:
+            - <<: *ExporterOrgPeer1
+      - name: connection
+        organization:
+          <<: *ImporterOrg
+          gateway_peers:
+            - <<: *ImporterOrgPeer1
+      - name: connection
+        organization:
+          <<: *CarrierOrg
+          gateway_peers:
+            - <<: *CarrierOrgPeer1
+      - name: connection
+        organization:
+          <<: *RegulatorOrg
+          gateway_peers:
+            - <<: *RegulatorOrgPeer1
+  pre_tasks:
+    - name: check if Trade package exists
+      stat: 
+        path: "{{ source.contracts.trade }}"
+      register: trade
+    - name: Build the trade chaincode
+      make:
+        chdir: "{{ playbook_dir }}/../contracts/v1/trade"
+        target: "package"
+      when: state == 'present' and trade.stat.exists == false
+    - name: check if Export License package exists
+      stat: 
+        path: "{{ source.contracts.exportlicense }}"
+      register: exportlicense
+    - name: Build the export license chaincode
+      make:
+        chdir: "{{ playbook_dir }}/../contracts/v1/exportLicense"
+        target: "package"
+      when: state == 'present' and exportlicense.stat.exists == false
+    - name: check if Letter of Credit package exists
+      stat: 
+        path: "{{ source.contracts.letterofcredit }}"
+      register: letterOfCredit
+    - name: Build the letter of credit chaincode
+      make:
+        chdir: "{{ playbook_dir }}/../contracts/v1/letterOfCredit"
+        target: "package"
+      when: state == 'present' and letterOfCredit.stat.exists == false
+    - name: check if shipment package exists
+      stat: 
+        path: "{{ source.contracts.shipment }}"
+      register: shipment
+    - name: Build the shipment chaincode
+      make:
+        chdir: "{{ playbook_dir }}/../contracts/v1/shipment"
+        target: "package"
+      when: state == 'present' and shipment.stat.exists == false
+
+  roles:
+    - ibm.blockchain_platform_manager

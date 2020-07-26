@@ -1,0 +1,108 @@
+#
+# SPDX-License-Identifier: Apache-2.0
+#
+
+version: '2'
+
+services:
+
+  orderer.trade.com:
+    container_name: orderer.trade.com
+    extends:
+      file: peer-base.yaml
+      service: orderer-base
+    volumes:
+    - ../channel-artifacts/genesis.block:/var/hyperledger/orderer/orderer.genesis.block
+    - ../crypto-config/ordererOrganizations/trade.com/orderers/orderer.trade.com/msp:/var/hyperledger/orderer/msp
+    - ../crypto-config/ordererOrganizations/trade.com/orderers/orderer.trade.com/tls/:/var/hyperledger/orderer/tls
+    - orderer.trade.com:/var/hyperledger/production/orderer
+    ports:
+      - 7050:7050
+
+  peer0.exporterorg.trade.com:
+    container_name: peer0.exporterorg.trade.com
+    extends:
+      file: peer-base.yaml
+      service: peer-base
+    environment:
+      - CORE_PEER_ID=peer0.exporterorg.trade.com
+      - CORE_PEER_ADDRESS=peer0.exporterorg.trade.com:7051
+      - CORE_PEER_LISTENADDRESS=0.0.0.0:7051
+      - CORE_PEER_CHAINCODEADDRESS=peer0.exporterorg.trade.com:7052
+      - CORE_PEER_CHAINCODELISTENADDRESS=0.0.0.0:7052
+      - CORE_PEER_GOSSIP_EXTERNALENDPOINT=peer0.exporterorg.trade.com:7051
+      - CORE_PEER_GOSSIP_BOOTSTRAP=peer0.exporterorg.trade.com:7051
+      - CORE_PEER_LOCALMSPID=ExporterOrgMSP
+    volumes:
+        - /var/run/:/host/var/run/
+        - ../crypto-config/peerOrganizations/exporterorg.trade.com/peers/peer0.exporterorg.trade.com/msp:/etc/hyperledger/fabric/msp
+        - ../crypto-config/peerOrganizations/exporterorg.trade.com/peers/peer0.exporterorg.trade.com/tls:/etc/hyperledger/fabric/tls
+        - peer0.exporterorg.trade.com:/var/hyperledger/production
+    ports:
+      - 7051:7051
+
+  peer0.importerorg.trade.com:
+    container_name: peer0.importerorg.trade.com
+    extends:
+      file: peer-base.yaml
+      service: peer-base
+    environment:
+      - CORE_PEER_ID=peer0.importerorg.trade.com
+      - CORE_PEER_ADDRESS=peer0.importerorg.trade.com:8051
+      - CORE_PEER_LISTENADDRESS=0.0.0.0:8051
+      - CORE_PEER_CHAINCODEADDRESS=peer0.importerorg.trade.com:7052
+      - CORE_PEER_CHAINCODELISTENADDRESS=0.0.0.0:7052
+      - CORE_PEER_GOSSIP_EXTERNALENDPOINT=peer0.importerorg.trade.com:8051
+      - CORE_PEER_GOSSIP_BOOTSTRAP=peer0.importerorg.trade.com:8051
+      - CORE_PEER_LOCALMSPID=ImporterOrgMSP
+    volumes:
+        - /var/run/:/host/var/run/
+        - ../crypto-config/peerOrganizations/importerorg.trade.com/peers/peer0.importerorg.trade.com/msp:/etc/hyperledger/fabric/msp
+        - ../crypto-config/peerOrganizations/importerorg.trade.com/peers/peer0.importerorg.trade.com/tls:/etc/hyperledger/fabric/tls
+        - peer0.importerorg.trade.com:/var/hyperledger/production
+    ports:
+      - 8051:8051
+
+  peer0.carrierorg.trade.com:
+    container_name: peer0.carrierorg.trade.com
+    extends:
+      file: peer-base.yaml
+      service: peer-base
+    environment:
+      - CORE_PEER_ID=peer0.carrierorg.trade.com
+      - CORE_PEER_ADDRESS=peer0.carrierorg.trade.com:9051
+      - CORE_PEER_LISTENADDRESS=0.0.0.0:9051
+      - CORE_PEER_CHAINCODEADDRESS=peer0.carrierorg.trade.com:7052
+      - CORE_PEER_CHAINCODELISTENADDRESS=0.0.0.0:7052
+      - CORE_PEER_GOSSIP_EXTERNALENDPOINT=peer0.carrierorg.trade.com:9051
+      - CORE_PEER_GOSSIP_BOOTSTRAP=peer0.carrierorg.trade.com:9051
+      - CORE_PEER_LOCALMSPID=CarrierOrgMSP
+    volumes:
+        - /var/run/:/host/var/run/
+        - ../crypto-config/peerOrganizations/carrierorg.trade.com/peers/peer0.carrierorg.trade.com/msp:/etc/hyperledger/fabric/msp
+        - ../crypto-config/peerOrganizations/carrierorg.trade.com/peers/peer0.carrierorg.trade.com/tls:/etc/hyperledger/fabric/tls
+        - peer0.carrierorg.trade.com:/var/hyperledger/production
+    ports:
+      - 9051:9051
+
+  peer0.regulatororg.trade.com:
+    container_name: peer0.regulatororg.trade.com
+    extends:
+      file: peer-base.yaml
+      service: peer-base
+    environment:
+      - CORE_PEER_ID=peer0.regulatororg.trade.com
+      - CORE_PEER_ADDRESS=peer0.regulatororg.trade.com:10051
+      - CORE_PEER_LISTENADDRESS=0.0.0.0:10051
+      - CORE_PEER_CHAINCODEADDRESS=peer0.regulatororg.trade.com:7052
+      - CORE_PEER_CHAINCODELISTENADDRESS=0.0.0.0:7052
+      - CORE_PEER_GOSSIP_EXTERNALENDPOINT=peer0.regulatororg.trade.com:10051
+      - CORE_PEER_GOSSIP_BOOTSTRAP=peer0.regulatororg.trade.com:10051
+      - CORE_PEER_LOCALMSPID=RegulatorOrgMSP
+    volumes:
+        - /var/run/:/host/var/run/
+        - ../crypto-config/peerOrganizations/regulatororg.trade.com/peers/peer0.regulatororg.trade.com/msp:/etc/hyperledger/fabric/msp
+        - ../crypto-config/peerOrganizations/regulatororg.trade.com/peers/peer0.regulatororg.trade.com/tls:/etc/hyperledger/fabric/tls
+        - peer0.regulatororg.trade.com:/var/hyperledger/production
+    ports:
+      - 10051:10051

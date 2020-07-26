@@ -1,0 +1,263 @@
+#
+# SPDX-License-Identifier: Apache-2.0
+#
+---
+- name: Ensure Docker network exists
+  docker_network:
+    name: "{{ infrastructure.docker.network }}"
+    state: present
+
+- name: Register the user for the peer
+  include_tasks: register-user.yml
+  vars:
+    protocol: "{{ ibp[organization.ca.id].protocol }}"
+    hostname: "{{ ibp[organization.ca.id].hostname }}"
+    port: "{{ ibp[organization.ca.id].port }}"
+    caname: "{{ ibp[organization.ca.id].caname }}"
+    identity: "{{ peer.identity }}"
+    secret: "{{ peer.secret }}"
+    type: peer
+    registrar: "{{ organization.ca.admin_identity }}"
+
+- name: Enroll the user for the peer
+  include_tasks: enroll-user.yml
+  vars:
+    protocol: "{{ ibp[organization.ca.id].protocol }}"
+    hostname: "{{ ibp[organization.ca.id].hostname }}"
+    port: "{{ ibp[organization.ca.id].port }}"
+    caname: "{{ ibp[organization.ca.id].caname }}"
+    identity: "{{ peer.identity }}"
+    secret: "{{ peer.secret }}"
+    msp_id: "{{ organization.msp.id }}"
+    private: true
+
+- name: Register the TLS user for the peer
+  include_tasks: register-tls-user.yml
+  vars:
+    protocol: "{{ ibp[organization.ca.id].protocol }}"
+    hostname: "{{ ibp[organization.ca.id].hostname }}"
+    port: "{{ ibp[organization.ca.id].port }}"
+    caname: "{{ ibp[organization.ca.id].tlscaname }}"
+    identity: "{{ peer.tls.identity }}"
+    secret: "{{ peer.tls.secret }}"
+    type: peer
+    registrar: "{{ organization.ca.admin_identity }}"
+  when: peer.tls.enabled
+
+- name: Enroll the TLS user for the peer
+  include_tasks: enroll-tls-user.yml
+  vars:
+    protocol: "{{ ibp[organization.ca.id].protocol }}"
+    hostname: "{{ ibp[organization.ca.id].hostname }}"
+    port: "{{ ibp[organization.ca.id].port }}"
+    caname: "{{ ibp[organization.ca.id].tlscaname }}"
+    identity: "{{ peer.tls.identity }}"
+    secret: "{{ peer.tls.secret }}"
+    hostnames: "{{ peer.docker.hostname }},localhost"
+  when: peer.tls.enabled
+
+- name: Add admin user for the MSP to the peer
+  copy:
+    src: "{{ organization.wallet }}/{{ organization.msp.admin.identity }}/signcerts/"
+    dest: "{{ organization.wallet }}/{{ peer.identity }}/admincerts/"
+
+- name: Add configuration for the MSP to the peer
+  copy:
+    content: |
+      NodeOUs:
+          Enable: false
+    dest: "{{ organization.wallet }}/{{ peer.identity }}/config.yaml"
+
+- name: Create peer MSP volume
+  docker_volume:
+    name: "{{ peer.docker.name }}-msp"
+    state: present
+    labels: "{{ infrastructure.docker.labels | default(omit) }}"
+
+- name: Create peer TLS volume
+  docker_volume:
+    name: "{{ peer.docker.name }}-tls"
+    state: present
+    labels: "{{ infrastructure.docker.labels | default(omit) }}"
+  when: peer.tls.enabled
+
+- name: Create peer data volume
+  docker_volume:
+    name: "{{ peer.docker.name }}-data"
+    state: present
+    labels: "{{ infrastructure.docker.labels | default(omit) }}"
+
+- name: Create CouchDB data volume
+  docker_volume:
+    name: "{{ peer.docker.couchdb.name }}-data"
+    state: present
+    labels: "{{ infrastructure.docker.labels | default(omit) }}"
+  when: peer.database_type is defined and peer.database_type == "couchdb"
+
+- name: Start CouchDB container
+  docker_container:
+    name: "{{ peer.docker.couchdb.name }}"
+    image: couchdb:2.3.1
+    networks:
+      - name: "{{ infrastructure.docker.network }}"
+        aliases:
+          - "{{ peer.docker.couchdb.hostname | mandatory }}"
+    networks_cli_compatible: yes
+    hostname: "{{ peer.docker.couchdb.hostname | mandatory }}"
+    published_ports:
+      - "{{ peer.docker.couchdb.port }}:5984"
+    volumes:
+      - "{{ peer.docker.couchdb.name }}-data:/opt/couchdb/data"
+    state: started
+    labels: "{{ infrastructure.docker.labels | default(omit) }}"
+  when: peer.database_type is defined and peer.database_type == "couchdb"
+
+- name: Wait for CouchDB container to start
+  uri:
+    url: "http://localhost:{{ peer.docker.couchdb.port }}/_up"
+    status_code: "200"
+    validate_certs: no
+  register: result
+  until: result.status == 200
+  retries: 60
+  delay: 1
+  when: peer.database_type is defined and peer.database_type == "couchdb"
+
+- name: Start peer container
+  docker_container:
+    name: "{{ peer.docker.name }}"
+    image: hyperledger/fabric-peer:2.1.0
+    networks:
+      - name: "{{ infrastructure.docker.network }}"
+        aliases:
+          - "{{ peer.docker.hostname | mandatory }}"
+    networks_cli_compatible: yes
+    hostname: "{{ peer.docker.hostname | mandatory }}"
+    env:
+      CORE_PEER_ID: "{{ peer.id }}"
+      CORE_PEER_NETWORKID: "{{ peer.docker.chaincode_name_prefix | default(omit) }}"
+      CORE_PEER_LOCALMSPID: "{{ organization.msp.id }}"
+      CORE_PEER_LISTENADDRESS: 0.0.0.0:{{ peer.docker.port }}
+      CORE_PEER_CHAINCODELISTENADDRESS: 0.0.0.0:{{ peer.docker.chaincode_port }}
+      CORE_PEER_GOSSIP_BOOTSTRAP: "{{ peer.docker.hostname }}:{{ peer.docker.port }}"
+      CORE_PEER_GOSSIP_EXTERNALENDPOINT: "{{ peer.docker.hostname }}:{{ peer.docker.port }}"
+      CORE_PEER_TLS_ENABLED: "{{ 'true' if peer.tls.enabled else 'false' }}"
+      CORE_VM_DOCKER_HOSTCONFIG_NETWORKMODE: "{{ infrastructure.docker.network }}"
+      CORE_CHAINCODE_BUILDER: hyperledger/fabric-ccenv:2.1.0
+      CORE_CHAINCODE_GOLANG_RUNTIME: hyperledger/fabric-baseos:2.1.0
+      CORE_CHAINCODE_JAVA_RUNTIME: hyperledger/fabric-javaenv:2.1.0
+      CORE_CHAINCODE_NODE_RUNTIME: hyperledger/fabric-nodeenv:2.1.0
+      CORE_CHAINCODE_MODE: "{{ 'net' if peer.tls.enabled else 'dev' }}"
+      CORE_CHAINCODE_EXECUTETIMEOUT: "300s"
+      CORE_LEDGER_STATE_STATEDATABASE: "{{ 'CouchDB' if peer.database_type is defined and peer.database_type == 'couchdb' else 'goleveldb' }}"
+      CORE_LEDGER_STATE_COUCHDBCONFIG_COUCHDBADDRESS: "{{
+        peer.docker.couchdb.hostname + ':5984' if peer.database_type is defined and peer.database_type == 'couchdb' else ''
+      }}"
+      CORE_OPERATIONS_LISTENADDRESS: 0.0.0.0:{{ peer.docker.operations_port }}
+      CORE_OPERATIONS_TLS_ENABLED: "{{ 'true' if peer.tls.enabled else 'false' }}"
+      CORE_OPERATIONS_TLS_CERT_FILE: /etc/hyperledger/fabric/tls/server.crt
+      CORE_OPERATIONS_TLS_KEY_FILE: /etc/hyperledger/fabric/tls/server.key
+      CORE_OPERATIONS_TLS_CLIENTROOTCAS_FILES: /etc/hyperledger/fabric/tls/ca.crt
+      CORE_METRICS_PROVIDER: prometheus
+    published_ports:
+      - "{{ peer.docker.port }}:{{ peer.docker.port }}"
+      - "{{ peer.docker.chaincode_port }}:{{ peer.docker.chaincode_port }}"
+      - "{{ peer.docker.operations_port }}:{{ peer.docker.operations_port }}"
+    volumes:
+      - "{{ peer.docker.name }}-msp:/etc/hyperledger/fabric/msp"
+      - "{{ peer.docker.name }}-tls:/etc/hyperledger/fabric/tls"
+      - "{{ peer.docker.name }}-data:/var/hyperledger/production"
+      - /var/run/docker.sock:/var/run/docker.sock
+    state: started
+    labels: "{{ infrastructure.docker.labels | default(omit) }}"
+
+- name: Compare the peer user enrollment with peer container
+  shell: >
+    set -o pipefail &&
+    tar cf - -C "{{ organization.wallet }}/{{ peer.identity }}" . |
+    docker exec -i {{ peer.docker.name }} sh -c "
+      cat >/tmp/msp.tar &&
+      rm -rf /tmp/msp &&
+      mkdir /tmp/msp &&
+      cd /tmp/msp &&
+      tar xf /tmp/msp.tar &&
+      find . -type f -exec sha256sum {} \; > /tmp/msp.sums &&
+      cd /etc/hyperledger/fabric/msp &&
+      sha256sum -c /tmp/msp.sums"
+  args:
+    executable: /bin/bash
+  register: check_peer_msp
+  failed_when: False
+  changed_when: False
+
+- name: Copy the peer user enrollment into peer container
+  command: >
+    docker cp
+    "{{ organization.wallet }}/{{ peer.identity }}/."
+    {{ peer.docker.name }}:/etc/hyperledger/fabric/msp/
+  when: check_peer_msp.rc != 0
+
+- name: Compare the peer TLS user enrollment with peer container
+  shell: >
+    set -o pipefail &&
+    tar cf - -C "{{ organization.wallet }}/{{ peer.tls.identity }}" . |
+    docker exec -i {{ peer.docker.name }} sh -c "
+      cat >/tmp/tls.tar &&
+      rm -rf /tmp/tls &&
+      mkdir /tmp/tls &&
+      cd /tmp/tls &&
+      tar xf /tmp/tls.tar &&
+      find . -type f -exec sha256sum {} \; > /tmp/tls.sums &&
+      cd /etc/hyperledger/fabric/tls &&
+      sha256sum -c /tmp/tls.sums"
+  args:
+    executable: /bin/bash
+  register: check_peer_tls
+  failed_when: False
+  changed_when: False
+  when: peer.tls.enabled
+
+- name: Copy the peer TLS user enrollment into peer container
+  command: >
+    docker cp
+    "{{ organization.wallet }}/{{ peer.tls.identity }}/."
+    {{ peer.docker.name }}:/etc/hyperledger/fabric/tls/
+  when: peer.tls.enabled and check_peer_tls.rc != 0
+
+- name: Restart peer container
+  docker_container:
+    name: "{{ peer.docker.name }}"
+    state: started
+    restart: yes
+  when: check_peer_msp.rc != 0 or (peer.tls.enabled and check_peer_tls.rc != 0)
+
+- name: Wait for peer to start
+  uri:
+    url: "{{ 'https' if peer.tls.enabled else 'http' }}://localhost:{{ peer.docker.operations_port }}/healthz"
+    status_code: "200"
+    validate_certs: no
+  register: result
+  until: result.status == 200
+  retries: 60
+  delay: 1
+
+- name: Update peer facts
+  set_fact:
+    ibp: "{{
+      ibp |
+      combine({
+        peer.id: {
+          'protocol': 'grpcs' if peer.tls.enabled else 'grpc',
+          'hostname': 'localhost',
+          'internal_hostname': peer.docker.hostname,
+          'port': peer.docker.port,
+          'chaincode_port': peer.docker.chaincode_port,
+          'pem': organization.wallet + '/tls-root.pem' if peer.tls.enabled else ''
+        }
+      }, recursive=True)
+    }}"
+
+- name: Create node JSON file
+  copy:
+    content: "{{ lookup('template', 'docker/peer-node.json.j2') | to_nice_json }}"
+    dest: "{{ organization.nodes }}/{{ peer.id }}.json"

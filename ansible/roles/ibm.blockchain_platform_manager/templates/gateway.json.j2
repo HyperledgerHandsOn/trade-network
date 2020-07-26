@@ -1,0 +1,59 @@
+{# SPDX-License-Identifier: Apache-2.0 #}
+{
+    "name": "{{ gateway.name }}",
+    "version": "1.0.0",
+    "wallet": "{{ gateway.organization.wallet | basename }}",
+    "client": {
+        "organization": "{{ gateway.organization.msp.id }}",
+        "connection": {
+            "timeout": {
+                "peer": {
+                    "endorser": "300"
+                },
+                "orderer": "300"
+            }
+        }
+    },
+    "organizations": {
+        "{{ gateway.organization.msp.id }}": {
+            "mspid": "{{ gateway.organization.msp.id }}",
+            "peers": [
+                {% for gateway_peer in gateway.organization.gateway_peers %}
+                "{{ gateway_peer.id }}"{%- if not loop.last -%},{% endif %}
+                {% endfor %}
+            ],
+            "certificateAuthorities": [
+                "{{ gateway.organization.ca.id }}"
+            ]
+        }
+    },
+    "peers": {
+        {% for gateway_peer in gateway.organization.gateway_peers %}
+        "{{ gateway_peer.id }}": {
+            {% if gateway_peer.tls.enabled %}
+            "tlsCACerts": {
+                "pem": {{ lookup('file', ibp[gateway_peer.id].pem) | to_json }}
+            },
+            {% if ibp[gateway_peer.id].internal_hostname is defined %}
+            "grpcOptions": {
+                "hostnameOverride": "{{ ibp[gateway_peer.id].internal_hostname }}",
+                "ssl-target-name-override": "{{ ibp[gateway_peer.id].internal_hostname }}"
+            },
+            {% endif %}
+            {% endif %}
+            "url": "{{ ibp[gateway_peer.id].protocol }}://{{ ibp[gateway_peer.id].hostname }}:{{ ibp[gateway_peer.id].port }}"
+        }{%- if not loop.last -%},{% endif %}
+        {% endfor %}
+    },
+    "certificateAuthorities": {
+        "{{ gateway.organization.ca.id }}": {
+            {% if gateway.organization.ca.tls.enabled %}
+            "tlsCACerts": {
+                "pem": {{ lookup('file', ibp[gateway.organization.ca.id].pem) | to_json }}
+            },
+            {% endif %}
+            "url": "{{ ibp[gateway.organization.ca.id].protocol }}://{{ ibp[gateway.organization.ca.id].hostname }}:{{ ibp[gateway.organization.ca.id].port }}",
+            "caName": "{{ ibp[gateway.organization.ca.id].caname }}"
+        }
+    }
+}

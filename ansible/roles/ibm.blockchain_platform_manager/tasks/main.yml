@@ -1,0 +1,60 @@
+#
+# SPDX-License-Identifier: Apache-2.0
+#
+---
+- name: Set facts
+  set_fact:
+    ibp: {}
+
+- name: Create temporary directory
+  tempfile:
+      state: directory
+  register: tempdir
+  changed_when: false
+
+- name: Initialize infrastructure
+  include_tasks: "{{ infrastructure.type }}/init.yml"
+
+- name: Create all organisations
+  include_tasks: create-organisation.yml
+  with_items: "{{ organizations }}"
+  loop_control:
+    loop_var: organization
+  when: state == 'present'
+
+- name: Delete all organisations
+  include_tasks: delete-organisation.yml
+  with_items: "{{ organizations }}"
+  loop_control:
+    loop_var: organization
+  when: state == 'absent'
+
+- name: Manage all consortiums
+  include_tasks: manage-consortium.yml
+  with_items: "{{ organizations }}"
+  loop_control:
+    loop_var: organization
+  vars:
+    orderer: "{{ organization.orderer }}"
+  when: state == 'present' and organization.orderer is defined
+
+- name: Manage all channels
+  include_tasks: manage-channel.yml
+  with_items: "{{ channels }}"
+  loop_control:
+    loop_var: channel
+  when: state == 'present'
+
+- name: Manage all contracts
+  include_tasks: manage-contract.yml
+  with_items: "{{ contracts }}"
+  loop_control:
+    loop_var: contract
+  when: state == 'present'
+
+- name: Create all gateways
+  include_tasks: create-gateway.yml
+  with_items: "{{ gateways }}"
+  loop_control:
+    loop_var: gateway
+  when: state == 'present'

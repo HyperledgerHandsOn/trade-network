@@ -1,0 +1,13 @@
+#
+# SPDX-License-Identifier: Apache-2.0
+#
+---
+- name: Stop and remove certificate authority container
+  docker_container:
+    name: "{{ ca.docker.name }}"
+    state: absent
+
+- name: Delete certificate authority volume
+  docker_volume:
+    name: "{{ ca.docker.name }}"
+    state: absent

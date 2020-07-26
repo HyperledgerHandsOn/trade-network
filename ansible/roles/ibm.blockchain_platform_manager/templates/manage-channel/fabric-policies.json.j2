@@ -1,0 +1,158 @@
+{# SPDX-License-Identifier: Apache-2.0 #}
+{
+    "Admins": {
+        "mod_policy": "Admins",
+        "policy": {
+            "type": 1,
+            "value": {
+                "rule": {
+                    "n_out_of": {
+                        "n": 1,
+                        "rules": [
+                            {% for member in channel.members %}
+                            {
+                                "signed_by": {{ loop.index0 }}
+                            }{%- if not loop.last -%},{% endif %}
+                            {% endfor %}
+                        ]
+                    }
+                },
+                "identities": [
+                    {% for member in channel.members %}
+                    {
+                        "principal_classification": "ROLE",
+                        "principal": {
+                            "msp_identifier": "{{ member.msp.id }}",
+                            "role": "ADMIN"
+                        }
+                    }{%- if not loop.last -%},{% endif %}
+                    {% endfor %}
+                ]
+            }
+        }
+    },
+    "Readers": {
+        "mod_policy": "Admins",
+        "policy": {
+            "type": 1,
+            "value": {
+                "rule": {
+                    "n_out_of": {
+                        "n": 1,
+                        "rules": [
+                            {% for member in channel.members %}
+                            {
+                                "signed_by": {{ loop.index0 }}
+                            }{%- if not loop.last -%},{% endif %}
+                            {% endfor %}
+                        ]
+                    }
+                },
+                "identities": [
+                    {% for member in channel.members %}
+                    {
+                        "principal_classification": "ROLE",
+                        "principal": {
+                            "msp_identifier": "{{ member.msp.id }}",
+                            "role": "MEMBER"
+                        }
+                    }{%- if not loop.last -%},{% endif %}
+                    {% endfor %}
+                ]
+            }
+        }
+    },
+    "Writers": {
+        "mod_policy": "Admins",
+        "policy": {
+            "type": 1,
+            "value": {
+                "rule": {
+                    "n_out_of": {
+                        "n": 1,
+                        "rules": [
+                            {% for member in channel.members %}
+                            {
+                                "signed_by": {{ loop.index0 }}
+                            }{%- if not loop.last -%},{% endif %}
+                            {% endfor %}
+                        ]
+                    }
+                },
+                "identities": [
+                    {% for member in channel.members %}
+                    {
+                        "principal_classification": "ROLE",
+                        "principal": {
+                            "msp_identifier": "{{ member.msp.id }}",
+                            "role": "MEMBER"
+                        }
+                    }{%- if not loop.last -%},{% endif %}
+                    {% endfor %}
+                ]
+            }
+        }
+    },
+    "LifecycleEndorsement": {
+        "mod_policy": "Admins",
+        "policy": {
+            "type": 1,
+            "value": {
+                "rule": {
+                    "n_out_of": {
+                        "n": 1,
+                        "rules": [
+                            {% for member in channel.members %}
+                            {
+                                "signed_by": {{ loop.index0 }}
+                            }{%- if not loop.last -%},{% endif %}
+                            {% endfor %}
+                        ]
+                    }
+                },
+                "identities": [
+                    {% for member in channel.members %}
+                    {
+                        "principal_classification": "ROLE",
+                        "principal": {
+                            "msp_identifier": "{{ member.msp.id }}",
+                            "role": "MEMBER"
+                        }
+                    }{%- if not loop.last -%},{% endif %}
+                    {% endfor %}
+                ]
+            }
+        }
+    },
+    "Endorsement": {
+        "mod_policy": "Admins",
+        "policy": {
+            "type": 1,
+            "value": {
+                "rule": {
+                    "n_out_of": {
+                        "n": 1,
+                        "rules": [
+                            {% for member in channel.members %}
+                            {
+                                "signed_by": {{ loop.index0 }}
+                            }{%- if not loop.last -%},{% endif %}
+                            {% endfor %}
+                        ]
+                    }
+                },
+                "identities": [
+                    {% for member in channel.members %}
+                    {
+                        "principal_classification": "ROLE",
+                        "principal": {
+                            "msp_identifier": "{{ member.msp.id }}",
+                            "role": "MEMBER"
+                        }
+                    }{%- if not loop.last -%},{% endif %}
+                    {% endfor %}
+                ]
+            }
+        }
+    }
+}

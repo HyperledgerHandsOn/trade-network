@@ -1,0 +1,23 @@
+#
+# SPDX-License-Identifier: Apache-2.0
+#
+---
+- name: Stop and remove orderer container
+  docker_container:
+    name: "{{ orderer.docker.name }}"
+    state: absent
+
+- name: Delete orderer MSP volume
+  docker_volume:
+    name: "{{ orderer.docker.name }}-msp"
+    state: absent
+
+- name: Delete orderer TLS volume
+  docker_volume:
+    name: "{{ orderer.docker.name }}-tls"
+    state: absent
+
+- name: Delete orderer data volume
+  docker_volume:
+    name: "{{ orderer.docker.name }}-data"
+    state: absent

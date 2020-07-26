@@ -1,0 +1,80 @@
+#
+# SPDX-License-Identifier: Apache-2.0
+#
+---
+trigger:
+  branches:
+    include:
+      - "*"
+  tags:
+    include:
+      - "*"
+
+pool:
+  vmImage: "ubuntu-latest"
+
+steps:
+  - script: sudo apt-get update && sudo apt-get install -y moreutils
+    displayName: Install Ubuntu dependencies
+  - task: UsePythonVersion@0
+    inputs:
+      versionSpec: "3.x"
+    displayName: Use Python 3.x
+  - script: pip install ansible ansible-lint docker yamllint
+    displayName: Install Python dependencies
+  - script: |
+      set -ex
+      wget -qO fabric-bins.tar.gz https://github.com/hyperledger/fabric/releases/download/v2.0.0/hyperledger-fabric-linux-amd64-2.0.0.tar.gz
+      sudo tar xvf fabric-bins.tar.gz -C /usr/local
+      rm fabric-bins.tar.gz
+    displayName: Download Fabric CLI
+  - script: |
+      set -ex
+      wget -qO fabric-ca-bins.tar.gz https://github.com/hyperledger/fabric-ca/releases/download/v1.4.4/hyperledger-fabric-ca-linux-amd64-1.4.4.tar.gz
+      sudo tar xvf fabric-ca-bins.tar.gz -C /usr/local
+      rm fabric-ca-bins.tar.gz
+    displayName: Download Fabric CA CLI
+  - script: |
+      set -ex
+      ansible-lint .
+      yamllint .
+    displayName: Lint
+  - script: |
+      set -ex
+      docker pull ibmblockchain/vscode-prereqs:latest || true
+    displayName: Pull Docker image
+  - script: docker/build.sh
+    displayName: Build Docker image
+  - script: |
+      set -ex
+      mkdir -p ~/.ansible/roles
+      ln -s $(Build.Repository.LocalPath) ~/.ansible/roles/ibm.blockchain_platform_manager
+    displayName: Link Playbook dependencies
+  - script: |
+      set -ex
+      ansible-playbook tests/test.yml
+      ansible-playbook --extra-vars "state=absent" tests/test.yml
+    displayName: Run Playbook tests
+  - script: |
+      set -ex
+      ansible-galaxy login --github-token=$(GitHub Token)
+      ansible-galaxy import IBM-Blockchain ansible-role-blockchain-platform-manager
+    condition: ne(variables['Build.Reason'], 'PullRequest')
+    displayName: Publish to Ansible Galaxy
+  - script: |
+      set -ex
+      docker login -u $(Docker Username) -p $(Docker Password)
+      docker tag ibmblockchain/ansible:latest ibmblockchain/vscode-prereqs:unstable
+      docker push ibmblockchain/vscode-prereqs:unstable
+    condition: ne(variables['Build.Reason'], 'PullRequest')
+    displayName: Push Docker image to Docker Hub (merge build)
+  - script: |
+      set -ex
+      docker login -u $(Docker Username) -p $(Docker Password)
+      VERSION=$(git describe --exact-match --tags $(Build.SourceVersion))
+      docker tag ibmblockchain/ansible:latest ibmblockchain/vscode-prereqs:${VERSION}
+      docker tag ibmblockchain/vscode-prereqs:${VERSION} ibmblockchain/vscode-prereqs:latest
+      docker push ibmblockchain/vscode-prereqs:${VERSION}
+      docker push ibmblockchain/vscode-prereqs:latest
+    condition: and(succeeded(), startsWith(variables['Build.SourceBranch'], 'refs/tags'))
+    displayName: Push Docker image to Docker Hub (release build)

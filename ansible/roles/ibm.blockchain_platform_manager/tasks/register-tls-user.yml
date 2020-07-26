@@ -1,0 +1,39 @@
+#
+# SPDX-License-Identifier: Apache-2.0
+#
+---
+- name: Determine registrar directory
+  set_fact:
+    registrar_directory: "{{
+      organization.wallet +
+      '/' +
+      caname +
+      '/' +
+      registrar if caname != ibp[organization.ca.id].caname else organization.wallet +
+      '/' +
+      registrar
+    }}"
+
+- name: Check to see if the TLS user has been registered
+  command: >
+    fabric-ca-client identity list
+    -u {{ protocol }}://{{ hostname }}:{{ port }}
+    --caname {{ caname }}
+    --id {{ identity }}
+    -M "{{ registrar_directory }}"
+    {% if protocol == "https" %}--tls.certfiles "{{ organization.wallet }}/ca-tls-root.pem"{% endif %}
+  register: identity_list
+  failed_when: False
+  changed_when: False
+
+- name: Register the TLS user
+  command: >
+    fabric-ca-client register
+    -u {{ protocol }}://{{ hostname }}:{{ port }}
+    --caname {{ caname }}
+    --id.name {{ identity }}
+    --id.secret {{ secret }}
+    --id.type {{ type }}
+    -M "{{ registrar_directory }}"
+    {% if protocol == "https" %}--tls.certfiles "{{ organization.wallet }}/ca-tls-root.pem"{% endif %}
+  when: identity_list.rc != 0

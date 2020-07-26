@@ -1,0 +1,9 @@
+#
+# SPDX-License-Identifier: Apache-2.0
+#
+---
+- name: Install, approve and commit all definitions
+  include_tasks: manage-contract/definition.yml
+  with_items: "{{ channel.definitions }}"
+  loop_control:
+      loop_var: definition

@@ -1,0 +1,32 @@
+#
+# SPDX-License-Identifier: Apache-2.0
+#
+---
+- name: Get the list of components
+  uri:
+    url: "{{ infrastructure.saas.api_endpoint }}/ak/api/v1/components?skip_cache=yes"
+    method: GET
+    return_content: yes
+    headers:
+      Authorization: "Bearer {{ ibp.saas.access_token }}"
+  register: ibp_components
+
+- name: Check for certificate authority
+  set_fact:
+    ibp_ca_count: "{{
+      ibp_components.json |
+      selectattr('display_name', 'defined') |
+      selectattr('display_name', 'eq', ca.ibp.display_name) |
+      list
+    }}"
+
+- name: Delete certificate authority
+  uri:
+    url: "{{ infrastructure.saas.api_endpoint }}/ak/api/v1/kubernetes/components/{{ ibp_ca.id }}"
+    method: DELETE
+    headers:
+      Authorization: "Bearer {{ ibp.saas.access_token }}"
+  changed_when: True
+  with_items: "{{ ibp_ca_count }}"
+  loop_control:
+    loop_var: ibp_ca

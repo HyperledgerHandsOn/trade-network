@@ -1,0 +1,58 @@
+#
+# SPDX-License-Identifier: Apache-2.0
+#
+---
+- name: Select member to use for query operations
+  set_fact:
+    member: "{{ definition.endorsing_members[0] }}"
+
+- name: Select peer to use for query operations
+  set_fact:
+    peer: "{{ member.endorsing_peers[0] }}"
+
+- name: Retrieve current committed contract list
+  command: >
+    peer lifecycle chaincode querycommitted
+    -C {{ channel.name }}
+    -n {{ definition.name }}
+    -O json
+  environment:
+      CORE_PEER_ADDRESS: "{{ ibp[peer.id].hostname }}:{{ ibp[peer.id].port }}"
+      CORE_PEER_MSPCONFIGPATH: "{{ member.wallet }}/{{ member.msp.admin.identity }}"
+      CORE_PEER_LOCALMSPID: "{{ member.msp.id }}"
+      CORE_PEER_TLS_ENABLED: "{{ 'true' if peer.tls.enabled else 'false' }}"
+      CORE_PEER_TLS_ROOTCERT_FILE: "{{ ibp[peer.id].pem if ibp[peer.id].pem is defined }}"
+  register: querycommitted
+  failed_when: False
+  changed_when: False
+
+- name: Handle existing chaincode definition
+  set_fact:
+    existing_sequence_number: "{{ (querycommitted.stdout | from_json).sequence }}"
+    new_sequence_number_reqd: False
+  when: querycommitted.rc == 0
+
+- name: Handle new chaincode definition
+  set_fact:
+    existing_sequence_number: 0
+    new_sequence_number_reqd: True
+  when: querycommitted.rc != 0
+
+- name: Determine if version has changed
+  set_fact:
+    new_sequence_number_reqd: True
+  when: not new_sequence_number_reqd and (querycommitted.stdout | from_json).version != definition.version
+
+- name: Debug sequence number
+  debug:
+    var: existing_sequence_number
+
+- name: Set next sequence number
+  set_fact: 
+    sequence_number: "{{ existing_sequence_number | int + 1 }}"
+  when: new_sequence_number_reqd
+
+- name: Use existing sequence number
+  set_fact:
+    sequence_number: "{{ existing_sequence_number }}"
+  when: not new_sequence_number_reqd

@@ -1,0 +1,157 @@
+#
+# SPDX-License-Identifier: Apache-2.0
+#
+
+version: '2'
+
+volumes:
+  orderer.trade.com:
+  orderer2.trade.com:
+  orderer3.trade.com:
+  orderer4.trade.com:
+  orderer5.trade.com:
+  peer0.exporterorg.trade.com:
+  peer0.importerorg.trade.com:
+  peer0.carrierorg.trade.com:
+  peer0.regulatororg.trade.com:
+  ca.exporterorg.trade.com:
+  ca.importerorg.trade.com:
+  ca.carrierorg.trade.com:
+  ca.regulatororg.trade.com:
+
+networks:
+  trade:
+
+services:
+
+  orderer2.trade.com:
+    container_name: orderer2.trade.com
+    extends:
+      file: base/peer-base.yaml
+      service: orderer-base
+    volumes:
+    - ./channel-artifacts/genesis.block:/var/hyperledger/orderer/orderer.genesis.block
+    - ./crypto-config/ordererOrganizations/trade.com/orderers/orderer2.trade.com/msp:/var/hyperledger/orderer/msp
+    - ./crypto-config/ordererOrganizations/trade.com/orderers/orderer2.trade.com/tls/:/var/hyperledger/orderer/tls
+    - orderer2.trade.com:/var/hyperledger/production/orderer
+    ports:
+      - 8050:7050
+    networks:
+      - trade
+
+  orderer3.trade.com:
+    container_name: orderer3.trade.com
+    extends:
+      file: base/peer-base.yaml
+      service: orderer-base
+    volumes:
+    - ./channel-artifacts/genesis.block:/var/hyperledger/orderer/orderer.genesis.block
+    - ./crypto-config/ordererOrganizations/trade.com/orderers/orderer3.trade.com/msp:/var/hyperledger/orderer/msp
+    - ./crypto-config/ordererOrganizations/trade.com/orderers/orderer3.trade.com/tls/:/var/hyperledger/orderer/tls
+    - orderer3.trade.com:/var/hyperledger/production/orderer
+    ports:
+      - 9050:7050
+    networks:
+      - trade
+
+  orderer4.trade.com:
+    container_name: orderer4.trade.com
+    extends:
+      file: base/peer-base.yaml
+      service: orderer-base
+    volumes:
+    - ./channel-artifacts/genesis.block:/var/hyperledger/orderer/orderer.genesis.block
+    - ./crypto-config/ordererOrganizations/trade.com/orderers/orderer4.trade.com/msp:/var/hyperledger/orderer/msp
+    - ./crypto-config/ordererOrganizations/trade.com/orderers/orderer4.trade.com/tls/:/var/hyperledger/orderer/tls
+    - orderer4.trade.com:/var/hyperledger/production/orderer
+    ports:
+      - 10050:7050
+    networks:
+      - trade
+
+  orderer5.trade.com:
+    container_name: orderer5.trade.com
+    extends:
+      file: base/peer-base.yaml
+      service: orderer-base
+    volumes:
+    - ./channel-artifacts/genesis.block:/var/hyperledger/orderer/orderer.genesis.block
+    - ./crypto-config/ordererOrganizations/trade.com/orderers/orderer5.trade.com/msp:/var/hyperledger/orderer/msp
+    - ./crypto-config/ordererOrganizations/trade.com/orderers/orderer5.trade.com/tls/:/var/hyperledger/orderer/tls
+    - orderer5.trade.com:/var/hyperledger/production/orderer
+    ports:
+      - 11050:7050
+    networks:
+      - trade
+
+  orderer.trade.com:
+    extends:
+      file:  docker-compose-e2e.yaml
+      service: orderer.trade.com
+    container_name: orderer.trade.com
+    networks:
+      - trade
+
+  peer0.exporterorg.trade.com:
+    container_name: peer0.exporterorg.trade.com
+    extends:
+      file:  docker-compose-e2e.yaml
+      service: peer0.exporterorg.trade.com
+    networks:
+      - trade
+
+  peer0.importerorg.trade.com:
+    container_name: peer0.importerorg.trade.com
+    extends:
+      file:  docker-compose-e2e.yaml
+      service: peer0.importerorg.trade.com
+    networks:
+      - trade
+
+  peer0.carrierorg.trade.com:
+    container_name: peer0.carrierorg.trade.com
+    extends:
+      file:  docker-compose-e2e.yaml
+      service: peer0.carrierorg.trade.com
+    networks:
+      - trade
+
+  peer0.regulatororg.trade.com:
+    container_name: peer0.regulatororg.trade.com
+    extends:
+      file:  docker-compose-e2e.yaml
+      service: peer0.regulatororg.trade.com
+    networks:
+      - trade
+
+  exporter-ca:
+    container_name: ca.exporterorg.trade.com
+    extends:
+      file:  docker-compose-e2e.yaml
+      service: exporter-ca
+    networks:
+      - trade
+
+  importer-ca:
+    container_name: ca.importerorg.trade.com
+    extends:
+      file:  docker-compose-e2e.yaml
+      service: importer-ca
+    networks:
+      - trade
+
+  carrier-ca:
+    container_name: ca.carrierorg.trade.com
+    extends:
+      file:  docker-compose-e2e.yaml
+      service: carrier-ca
+    networks:
+      - trade
+
+  regulator-ca:
+    container_name: ca.regulatororg.trade.com
+    extends:
+      file:  docker-compose-e2e.yaml
+      service: regulator-ca
+    networks:
+      - trade

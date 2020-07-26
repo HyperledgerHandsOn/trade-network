@@ -1,0 +1,27 @@
+sudo: required
+language: minimal
+services:
+- docker
+dist: xenial
+cache:
+  directories:
+  - v1/trade/node_modules
+script:
+- cd v1/trade && make build
+- make test
+- cd ../exportLicense && make build
+- make test
+- cd ../letterOfCredit && make build
+- make test
+before_deploy:
+- cd v1/trade && make package
+- cd ../exportLicense && make package
+- cd ../letterOfCredit && make package
+deploy:
+  provider: releases
+  api_key: ${OAUTH_TOKEN}
+  file_glob: true
+  file: ./**/dist/*.tgz
+  skip_cleanup: true
+  on:
+    tags: true

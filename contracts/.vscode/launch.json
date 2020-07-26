@@ -1,0 +1,46 @@
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "type": "node",
+            "request": "launch",
+            "name": "UnitTests",
+            "skipFiles": [
+                "<node_internals>/**"
+            ],
+            "cwd": "${workspaceFolder}/v1/trade/",
+            "program": "${workspaceFolder}/v1/trade/node_modules/.bin/nyc",
+            "args": [
+                "--reporter=lcov",
+                "${workspaceFolder}/v1/trade/node_modules/.bin/mocha", 
+                "--require", 
+                "ts-node/register",
+                "-u", 
+                "bdd", 
+                "--timeout",
+                "999999",
+                "--colors",
+                "${workspaceFolder}/v1/trade/src/**/*.spec.ts"
+            ],
+            "outFiles": [
+                "${workspaceFolder}/v1/trade/dist/*.js"
+            ]
+        },
+        { 
+            "type": "node",
+            "name": "Attach",
+            "request": "attach",
+            "port": 9229
+        }
+    ],
+    "compounds": [
+        {
+            "name": "Unit Tests with Code Coverage",
+            "configurations": ["Attach", "UnitTests"],
+            "preLaunchTask": "tsc: build - v1/trade/tsconfig.json"
+        }
+    ]
+}

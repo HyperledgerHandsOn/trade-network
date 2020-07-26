@@ -1,0 +1,121 @@
+#
+# SPDX-License-Identifier: Apache-2.0
+#
+---
+- name: Retrieve current system channel configuration block
+  command: >
+    peer channel fetch config
+    {{ tempdir.path }}/config_block.pb
+    -o {{ ibp[orderer.id].hostname }}:{{ ibp[orderer.id].port }}
+    -c system-channel
+    {{ '--tls' if ibp[orderer.id].protocol == 'grpcs' else '' }}
+    {{ '--cafile "' + ibp[orderer.id].pem + '"' if ibp[orderer.id].protocol == 'grpcs' else '' }}
+    {{ '--ordererTLSHostnameOverride ' + ibp[orderer.id].internal_hostname if ibp[orderer.id].internal_hostname is defined else '' }}
+  environment:
+    FABRIC_CFG_PATH: "{{ role_path }}/files/sampleconfig"
+    CORE_PEER_MSPCONFIGPATH: "{{ organization.wallet }}/{{ organization.msp.admin.identity }}"
+    CORE_PEER_LOCALMSPID: "{{ organization.msp.id }}"
+  changed_when: False
+
+- name: Decode current system channel configuration block
+  command: configtxlator proto_decode --type=common.Block --input={{ tempdir.path }}/config_block.pb --output={{ tempdir.path }}/config_block.json
+  changed_when: False
+
+- name: Extract system channel configuration from block
+  shell: >
+    set -o pipefail &&
+    jq
+    .data.data[0].payload.data.config
+    {{ tempdir.path }}/config_block.json |
+    tee {{ tempdir.path }}/config.json |
+    tee {{ tempdir.path }}/updated_config.json
+  args:
+    executable: /bin/bash
+  changed_when: False
+
+- name: Add/update consortium members in system channel configuration
+  shell: >
+    set -o pipefail &&
+    jq
+    --argjson msp '{{ lookup('template', 'manage-consortium/fabric-msp.json.j2') | to_json }}'
+    '.channel_group.groups.Consortiums.groups.SampleConsortium.groups.{{ member.msp.id }} = $msp'
+    {{ tempdir.path }}/updated_config.json |
+    sponge {{ tempdir.path }}/updated_config.json
+  args:
+    executable: /bin/bash
+  loop: "{{ orderer.consortium.members }}"
+  loop_control:
+    loop_var: member
+  changed_when: False
+
+- name: Update block configuration in system channel configuration
+  shell: >
+    set -o pipefail &&
+    jq
+    --argjson values '{{ lookup('template', 'manage-consortium/fabric-orderer-values.json.j2') | to_json }}'
+    '.channel_group.groups.Orderer.values *= $values'
+    {{ tempdir.path }}/updated_config.json |
+    sponge {{ tempdir.path }}/updated_config.json
+  args:
+    executable: /bin/bash
+  changed_when: False
+
+- name: Encode current system channel configuration
+  command: configtxlator proto_encode --type=common.Config --input={{ tempdir.path }}/config.json --output={{ tempdir.path }}/config.pb
+  changed_when: False
+
+- name: Encode updated system channel configuration
+  command: configtxlator proto_encode --type=common.Config --input={{ tempdir.path }}/updated_config.json --output={{ tempdir.path }}/updated_config.pb
+  changed_when: False
+
+- name: Compute system channel configuration update
+  command: >
+    configtxlator compute_update
+    --channel_id=system-channel
+    --original={{ tempdir.path }}/config.pb
+    --updated={{ tempdir.path }}/updated_config.pb
+    --output={{ tempdir.path }}/config_update.pb
+  register: compute_update
+  failed_when: False
+  changed_when: False
+
+- name: Decode system channel configuration update
+  command: configtxlator proto_decode --type=common.ConfigUpdate --input={{ tempdir.path }}/config_update.pb --output={{ tempdir.path }}/config_update.json
+  when: compute_update.rc == 0
+
+- name: Create system channel configuration update envelope
+  copy:
+      content: "{{ lookup('template', 'manage-consortium/fabric-config-envelope.json.j2') }}"
+      dest: "{{ tempdir.path }}/config_update_as_envelope.json"
+  when: compute_update.rc == 0
+
+- name: Encode system channel configuration update envelope
+  command: >
+    configtxlator proto_encode
+    --type=common.Envelope
+    --input={{ tempdir.path }}/config_update_as_envelope.json
+    --output={{ tempdir.path }}/config_update_as_envelope.pb
+  when: compute_update.rc == 0
+
+- name: Sign system channel configuration update envelope
+  command: peer channel signconfigtx -f {{ tempdir.path }}/config_update_as_envelope.pb
+  environment:
+    FABRIC_CFG_PATH: "{{ role_path }}/files/sampleconfig"
+    CORE_PEER_MSPCONFIGPATH: "{{ organization.wallet }}/{{ organization.msp.admin.identity }}"
+    CORE_PEER_LOCALMSPID: "{{ organization.msp.id }}"
+  when: compute_update.rc == 0
+
+- name: Submit system channel configuration update envelope
+  command: >
+    peer channel update
+    -f {{ tempdir.path }}/config_update_as_envelope.pb
+    -o {{ ibp[orderer.id].hostname }}:{{ ibp[orderer.id].port }}
+    -c system-channel
+    {{ '--tls' if ibp[orderer.id].protocol == 'grpcs' else '' }}
+    {{ '--cafile "' + ibp[orderer.id].pem + '"' if ibp[orderer.id].protocol == 'grpcs' else '' }}
+    {{ '--ordererTLSHostnameOverride ' + ibp[orderer.id].internal_hostname if ibp[orderer.id].internal_hostname is defined else '' }}
+  environment:
+    FABRIC_CFG_PATH: "{{ role_path }}/files/sampleconfig"
+    CORE_PEER_MSPCONFIGPATH: "{{ organization.wallet }}/{{ organization.msp.admin.identity }}"
+    CORE_PEER_LOCALMSPID: "{{ organization.msp.id }}"
+  when: compute_update.rc == 0

@@ -1,0 +1,10 @@
+#
+# SPDX-License-Identifier: Apache-2.0
+#
+---
+- name: Approve contract for all members in channel
+  include_tasks: approve-contract-member.yml
+  when: member.endorsing_peers is defined
+  with_items: "{{ definition.endorsing_members }}"
+  loop_control:
+      loop_var: member

@@ -1,0 +1,20 @@
+#
+# SPDX-License-Identifier: Apache-2.0
+#
+---
+- name: Install contract on all members peers in the channel
+  include_tasks: install-contract.yml
+
+- name: Calculate sequence number
+  include_tasks: calculate-sequence-number.yml
+
+- name: Approve contract for all members in the channel
+  include_tasks: approve-contract.yml
+
+- name: Commit contract in the channel
+  include_tasks: commit-contract.yml
+  when: new_sequence_number_reqd
+
+- name: Init contract on the channel
+  include_tasks: init-contract.yml
+  when: new_sequence_number_reqd
