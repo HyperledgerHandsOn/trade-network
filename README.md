@@ -36,7 +36,7 @@ These have been included to make it easy to reference components from these repo
 Here is the complete command:
   
 ```
-git clone --recurse-submodules git@github.com/Hyperledger-Book-2nd-Edition/trade-network.git
+git clone --recurse-submodules git@github.com/HyperledgerHandsOn/trade-network.git
 ```  
   
 ## Starting up the network 
