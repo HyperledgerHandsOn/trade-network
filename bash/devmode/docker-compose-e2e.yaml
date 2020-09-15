@@ -82,7 +82,8 @@ services:
         - /var/run/:/host/var/run/
         - ./crypto-config/peerOrganizations/devorg.trade.com/users/Admin@devorg.trade.com/msp:/etc/hyperledger/msp
         - ./channel-artifacts:/opt/trade/channel-artifacts
-        - ./../../chaincode:/opt/gopath/src/chaincodedev/chaincode
+        - ./../../contracts/v1/letterOfCredit:/opt/gopath/src/chaincodedev/letterOfCredit
+        - ./../../contracts/v1/trade:/opt/gopath/src/chaincodedev/trade
         - ./:/opt/trade
     depends_on:
       - orderer
