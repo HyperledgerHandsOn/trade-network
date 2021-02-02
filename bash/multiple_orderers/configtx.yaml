@@ -114,7 +114,7 @@ Organizations:
             # for cross org gossip communication.  Note, this value is only
             # encoded in the genesis block in the Application section context
             - Host: peer0.importerorg.trade.com
-              Port: 7051
+              Port: 8051
 
     - &CarrierOrg
         # DefaultOrg defines the organization which is used in the sampleconfig
@@ -148,7 +148,7 @@ Organizations:
             # for cross org gossip communication.  Note, this value is only
             # encoded in the genesis block in the Application section context
             - Host: peer0.carrierorg.trade.com
-              Port: 7051
+              Port: 9051
 
     - &RegulatorOrg
         # DefaultOrg defines the organization which is used in the sampleconfig
@@ -182,7 +182,7 @@ Organizations:
             # for cross org gossip communication.  Note, this value is only
             # encoded in the genesis block in the Application section context
             - Host: peer0.regulatororg.trade.com
-              Port: 7051
+              Port: 10051
 
 ################################################################################
 #
