@@ -184,7 +184,12 @@ function checkPrereqs() {
   # Note, we check configtxlator externally because it does not require a config file, and peer in the
   # docker image because of FAB-8551 that makes configtxlator return 'development version' in docker
   LOCAL_VERSION=$(configtxlator version | sed -ne 's/ Version: //p')
-  DOCKER_IMAGE_VERSION=$(docker run --rm hyperledger/fabric-tools:$IMAGE_TAG peer version | sed -ne 's/ Version: //p'|head -1)
+  
+  if [[ "$OSTYPE" == "darwin"* ]] && [[ $(uname -m) == arm* ]]; then
+    DOCKER_IMAGE_VERSION=$(docker run --platform linux/amd64 --rm hyperledger/fabric-tools:$IMAGE_TAG peer version | sed -ne 's/ Version: //p'|head -1)
+  else
+    DOCKER_IMAGE_VERSION=$(docker run --rm hyperledger/fabric-tools:$IMAGE_TAG peer version | sed -ne 's/ Version: //p'|head -1)
+  fi
 
   echo "LOCAL_VERSION=$LOCAL_VERSION"
   echo "DOCKER_IMAGE_VERSION=$DOCKER_IMAGE_VERSION"
@@ -262,13 +267,24 @@ function networkUp () {
     COMPOSE_FILE_DB="-f "$COMPOSE_FILE_COUCHDB
     NUM_CONTAINERS=3
   fi
-  if [ "$ORDERER_MODE" = "prod" ]
-  then
-    docker-compose -f $COMPOSE_FILE_RAFT $COMPOSE_FILE_DB up >$LOG_FILE 2>&1 &
-    NUM_CONTAINERS=$(($NUM_CONTAINERS + 13))
+  if [[ "$OSTYPE" == "darwin"* ]] && [[ $(uname -m) == arm* ]]; then
+    if [ "$ORDERER_MODE" = "prod" ]
+    then
+      docker-compose -f $COMPOSE_FILE_RAFT_M1 $COMPOSE_FILE_DB_M1 up >$LOG_FILE 2>&1 &
+      NUM_CONTAINERS=$(($NUM_CONTAINERS + 13))
+    else
+      docker-compose -f $COMPOSE_FILE_M1 $COMPOSE_FILE_DB up >$LOG_FILE 2>&1 &
+      NUM_CONTAINERS=$(($NUM_CONTAINERS + 9))
+    fi
   else
-    docker-compose -f $COMPOSE_FILE $COMPOSE_FILE_DB up >$LOG_FILE 2>&1 &
-    NUM_CONTAINERS=$(($NUM_CONTAINERS + 9))
+    if [ "$ORDERER_MODE" = "prod" ]
+    then
+      docker-compose -f $COMPOSE_FILE_RAFT $COMPOSE_FILE_DB up >$LOG_FILE 2>&1 &
+      NUM_CONTAINERS=$(($NUM_CONTAINERS + 13))
+    else
+      docker-compose -f $COMPOSE_FILE $COMPOSE_FILE_DB up >$LOG_FILE 2>&1 &
+      NUM_CONTAINERS=$(($NUM_CONTAINERS + 9))
+    fi
   fi
 
   if [ "$DEV_MODE" = true ] ; then
@@ -309,7 +325,7 @@ function newPeerUp () {
   then
     mkdir -p $LOG_DIR
   fi
-  docker-compose -f $COMPOSE_FILE_NEW_PEER up >$LOG_FILE_NEW_PEER 2>&1 &
+  docker-compose -f $COMPOSE_FILE_NEW_PEER_M1 up >$LOG_FILE_NEW_PEER 2>&1 &
   if [ $? -ne 0 ]; then
     echo "ERROR !!!! Unable to start peer"
     exit 1
@@ -341,7 +357,7 @@ function newOrgNetworkUp () {
   then
     mkdir -p $LOG_DIR
   fi
-  docker-compose -f $COMPOSE_FILE_NEW_ORG up >$LOG_FILE_NEW_ORG 2>&1 &
+  docker-compose -f $COMPOSE_FILE_NEW_ORG_M1 up >$LOG_FILE_NEW_ORG 2>&1 &
   if [ $? -ne 0 ]; then
     echo "ERROR !!!! Unable to start org network"
     exit 1
@@ -354,7 +370,7 @@ function checkAndStartCliContainer() {
   if [ -z "$CLI_CONTAINERS" ] ; then
     echo "No CLI container running"
     # Start the container
-    docker-compose -f $COMPOSE_FILE_CLI up >$LOG_FILE_CLI 2>&1 &
+    docker-compose -f $COMPOSE_FILE_CLI_M1 up >$LOG_FILE_CLI 2>&1 &
     if [ $? -ne 0 ]; then
       echo "ERROR !!!! Unable to start cli"
       exit 1
@@ -920,14 +936,14 @@ function networkDown () {
 
 # Bring down new peer
 function newPeerDown () {
-  docker-compose -f $COMPOSE_FILE_NEW_PEER down --volumes
+  docker-compose -f $COMPOSE_FILE_NEW_PEER_M1 down --volumes
   echo "Ignore any error messages of the form 'error while removing network' you see above!!!"
   docker volume rm ${COMPOSE_PROJECT_NAME}_peer1.importerorg.trade.com
 }
 
 # Bring down running network components of the new org
 function newOrgNetworkDown () {
-  docker-compose -f $COMPOSE_FILE_NEW_ORG down --volumes
+  docker-compose -f $COMPOSE_FILE_NEW_ORG_M1 down --volumes
   echo "Ignore any error messages of the form 'error while removing network' you see above!!!"
 
   for PEER in peer0.exportingentityorg.trade.com; do
@@ -1330,6 +1346,14 @@ COMPOSE_FILE_RAFT=docker-compose-raft-orderer.yaml
 COMPOSE_FILE_CLI=docker-compose-cli.yaml
 COMPOSE_FILE_REST=docker-compose-rest.yaml
 COMPOSE_FILE_COUCHDB=docker-compose-couchdb.yaml
+# defining docker-compose files for m1 macs
+COMPOSE_FILE_M1=docker-compose-e2e-m1.yaml
+COMPOSE_FILE_NEW_PEER_M1=docker-compose-another-importer-peer-m1.yaml
+COMPOSE_FILE_NEW_ORG_M1=docker-compose-exportingEntityOrg-m1.yaml
+COMPOSE_FILE_RAFT_M1=docker-compose-raft-orderer-m1.yaml
+COMPOSE_FILE_CLI_M1=docker-compose-cli-m1.yaml
+COMPOSE_FILE_REST_M1=docker-compose-rest-m1.yaml
+COMPOSE_FILE_COUCHDB_M1=docker-compose-couchdb-m1.yaml
 # default container names
 CONTAINER_CLI=trade_cli
 FABRIC_VERSION="2.2"

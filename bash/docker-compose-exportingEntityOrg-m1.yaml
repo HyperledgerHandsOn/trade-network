@@ -1,0 +1,80 @@
+#
+# SPDX-License-Identifier: Apache-2.0
+#
+
+version: "2"
+
+volumes:
+  peer0.exportingentityorg.trade.com:
+  ca.exportingentityorg.trade.com:
+
+networks:
+  trade:
+
+services:
+  exportingentity-ca:
+    image: hyperledger/fabric-ca:$CA_IMAGE_TAG
+    platform: linux/amd64
+    environment:
+      - FABRIC_CA_HOME=/etc/hyperledger/fabric-ca-server
+      - FABRIC_CA_SERVER_CA_NAME=ca-exportingentityorg
+      - FABRIC_CA_SERVER_TLS_ENABLED=true
+      - FABRIC_CA_SERVER_TLS_CERTFILE=/etc/hyperledger/fabric-ca-server-config/ca.exportingentityorg.trade.com-cert.pem
+      - FABRIC_CA_SERVER_TLS_KEYFILE=/etc/hyperledger/fabric-ca-server-config/priv_sk
+    ports:
+      - "12054:7054"
+    command: sh -c 'fabric-ca-server start --ca.certfile /etc/hyperledger/fabric-ca-server-config/ca.exportingentityorg.trade.com-cert.pem --ca.keyfile /etc/hyperledger/fabric-ca-server-config/priv_sk -b admin:adminpw -d'
+    volumes:
+      - ./crypto-config/peerOrganizations/exportingentityorg.trade.com/ca/:/etc/hyperledger/fabric-ca-server-config
+      - ca.exportingentityorg.trade.com:/etc/hyperledger/fabric-ca-server
+    container_name: ca.exportingentityorg.trade.com
+    networks:
+      - trade
+
+  couchdb-peer0.exportingentityorg.trade.com:
+    container_name: couchdb-peer0.exportingentityorg.trade.com
+    image: couchdb:2.3
+    # Populate the COUCHDB_USER and COUCHDB_PASSWORD to set an admin user and password
+    # for CouchDB.  This will prevent CouchDB from operating in an "Admin Party" mode.
+    environment:
+      - COUCHDB_USER=
+      - COUCHDB_PASSWORD=
+    # Comment/Uncomment the port mapping if you want to hide/expose the CouchDB service,
+    # for example map it to utilize Fauxton User Interface in dev environments.
+    ports:
+      - "9984:5984"
+    networks:
+      - trade
+
+  peer0.exportingentityorg.trade.com:
+    container_name: peer0.exportingentityorg.trade.com
+    extends:
+      file: base/peer-base-m1.yaml
+      service: peer-base
+    environment:
+      - CORE_PEER_ID=peer0.exportingentityorg.trade.com
+      - CORE_PEER_ADDRESS=peer0.exportingentityorg.trade.com:12051
+      - CORE_PEER_LISTENADDRESS=0.0.0.0:12051
+      - CORE_PEER_CHAINCODEADDRESS=peer0.exportingentityorg.trade.com:7052
+      - CORE_PEER_CHAINCODELISTENADDRESS=0.0.0.0:7052
+      - CORE_PEER_GOSSIP_BOOTSTRAP=peer0.exportingentityorg.trade.com:12051
+      - CORE_PEER_GOSSIP_EXTERNALENDPOINT=peer0.exportingentityorg.trade.com:12051
+      - CORE_PEER_LOCALMSPID=ExportingEntityOrgMSP
+      - CORE_LEDGER_STATE_STATEDATABASE=CouchDB
+      - CORE_LEDGER_STATE_COUCHDBCONFIG_COUCHDBADDRESS=couchdb-peer0.exportingentityorg.trade.com:5984
+      # The CORE_LEDGER_STATE_COUCHDBCONFIG_USERNAME and CORE_LEDGER_STATE_COUCHDBCONFIG_PASSWORD
+      # provide the credentials for ledger to connect to CouchDB.  The username and password must
+      # match the username and password set for the associated CouchDB.
+      - CORE_LEDGER_STATE_COUCHDBCONFIG_USERNAME=
+      - CORE_LEDGER_STATE_COUCHDBCONFIG_PASSWORD=
+    depends_on:
+      - couchdb-peer0.exportingentityorg.trade.com
+    volumes:
+      - /var/run/:/host/var/run/
+      - ./crypto-config/peerOrganizations/exportingentityorg.trade.com/peers/peer0.exportingentityorg.trade.com/msp:/etc/hyperledger/fabric/msp
+      - ./crypto-config/peerOrganizations/exportingentityorg.trade.com/peers/peer0.exportingentityorg.trade.com/tls:/etc/hyperledger/fabric/tls
+      - peer0.exportingentityorg.trade.com:/var/hyperledger/production
+    ports:
+      - 12051:12051
+    networks:
+      - trade

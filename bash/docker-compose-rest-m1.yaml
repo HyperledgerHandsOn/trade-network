@@ -1,0 +1,63 @@
+#
+# SPDX-License-Identifier: Apache-2.0
+#
+
+version: '2'
+
+services:
+
+networks:
+  trade:
+
+services:
+  exporter_rest:
+    container_name: exporter_rest
+    image: exporter-rest:latest
+    environment:
+      - CONFIG_PATH=/config
+    working_dir: /usr/src/app
+    volumes:
+        - ../:/config
+    ports:
+      - "4000:4000"
+    networks:
+      - trade
+
+  importer_rest:
+    container_name: importer_rest
+    image: importer-rest:latest
+    environment:
+      - CONFIG_PATH=/config
+    working_dir: /usr/src/app
+    volumes:
+        - ../:/config
+    ports:
+      - "5000:5000"
+    networks:
+      - trade
+
+  regulator_rest:
+    container_name: regulator_rest
+    image: regulator-rest:latest
+    environment:
+      - CONFIG_PATH=/config
+    working_dir: /usr/src/app
+    volumes:
+        - ../:/config
+    ports:
+      - "6000:6000"
+    networks:
+      - trade
+
+  carrier_rest:
+    container_name: carrier_rest
+    image: carrier-rest:latest
+    environment:
+      - CONFIG_PATH=/config
+    working_dir: /usr/src/app
+    volumes:
+        - ../:/config
+    ports:
+      - "7000:7000"
+    networks:
+      - trade
