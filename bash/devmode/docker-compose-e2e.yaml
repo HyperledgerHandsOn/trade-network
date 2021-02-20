@@ -8,6 +8,7 @@ services:
   orderer:
     container_name: orderer
     image: hyperledger/fabric-orderer:$IMAGE_TAG
+    platform: $PLATFORM
     environment:
       - FABRIC_LOGGING_SPEC=debug
       - ORDERER_GENERAL_LISTENADDRESS=orderer
@@ -28,6 +29,7 @@ services:
   peer:
     container_name: peer
     image: hyperledger/fabric-peer:$IMAGE_TAG
+    platform: $PLATFORM
     environment:
       - CORE_PEER_ID=peer0.devorg.trade.com
       - CORE_PEER_ADDRESS=peer:7051
@@ -41,7 +43,7 @@ services:
       - FABRIC_LOGGING_SPEC=DEBUG
       - CORE_PEER_MSPCONFIGPATH=/etc/hyperledger/msp
     volumes:
-        - /var/run/:/host/var/run/
+        - $UNIX_SOCK:/host/var/run/docker.sock
         - ./crypto-config/peerOrganizations/devorg.trade.com/peers/peer0.devorg.trade.com/msp:/etc/hyperledger/msp
     working_dir: /opt/gopath/src/github.com/hyperledger/fabric/peer
     command: peer node start --peer-chaincodedev
@@ -53,6 +55,7 @@ services:
   ca:
     container_name: ca
     image: hyperledger/fabric-ca:$CA_IMAGE_TAG
+    platform: $PLATFORM
     environment:
       - FABRIC_CA_HOME=/etc/hyperledger/fabric-ca-server
       - FABRIC_CA_SERVER_CA_NAME=ca
@@ -66,6 +69,7 @@ services:
   cli:
     container_name: cli
     image: hyperledger/fabric-tools:$IMAGE_TAG
+    platform: $PLATFORM
     tty: true
     environment:
       - SYS_CHANNEL=$SYS_CHANNEL
@@ -79,7 +83,7 @@ services:
     working_dir: /opt/gopath/src/chaincodedev
     command: /bin/bash -c '/opt/trade/setupChannel.sh'
     volumes:
-        - /var/run/:/host/var/run/
+        - $UNIX_SOCK:/host/var/run/docker.sock
         - ./crypto-config/peerOrganizations/devorg.trade.com/users/Admin@devorg.trade.com/msp:/etc/hyperledger/msp
         - ./channel-artifacts:/opt/trade/channel-artifacts
         - ./../../chaincode:/opt/gopath/src/chaincodedev/chaincode
@@ -91,6 +95,7 @@ services:
   chaincode-java:
     container_name: chaincode-java
     image: hyperledger/fabric-javaenv:$IMAGE_TAG
+    platform: $PLATFORM
     tty: true
     environment:
       - GOPATH=/opt/gopath
@@ -102,7 +107,7 @@ services:
       - CORE_PEER_MSPCONFIGPATH=/etc/hyperledger/msp
     working_dir: /opt/gopath/src/chaincode
     volumes:
-        - /var/run/:/host/var/run/
+        - $UNIX_SOCK:/host/var/run/docker.sock
         - ./crypto-config/peerOrganizations/devorg.trade.com/peers/peer0.devorg.trade.com/msp:/etc/hyperledger/msp
         - ./../../contracts/v1/letterOfCredit:/opt/gopath/src/chaincode/letterOfCredit
     depends_on:
@@ -112,6 +117,7 @@ services:
   chaincode-node:
     container_name: chaincode-node
     image: hyperledger/fabric-nodeenv:$IMAGE_TAG
+    platform: $PLATFORM
     tty: true
     environment:
       - GOPATH=/opt/gopath
@@ -123,7 +129,7 @@ services:
       - CORE_PEER_MSPCONFIGPATH=/etc/hyperledger/msp
     working_dir: /opt/gopath/src/chaincode
     volumes:
-        - /var/run/:/host/var/run/
+        - $UNIX_SOCK:/host/var/run/docker.sock
         - ./crypto-config/peerOrganizations/devorg.trade.com/peers/peer0.devorg.trade.com/msp:/etc/hyperledger/msp
         - ./../../contracts/v1/trade:/opt/gopath/src/chaincode/trade
     depends_on:

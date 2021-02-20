@@ -20,6 +20,7 @@ networks:
 services:
   exporter-ca:
     image: hyperledger/fabric-ca:$CA_IMAGE_TAG
+    platform: $PLATFORM
     environment:
       - FABRIC_CA_HOME=/etc/hyperledger/fabric-ca-server
       - FABRIC_CA_SERVER_CA_NAME=ca-exporterorg
@@ -38,6 +39,7 @@ services:
 
   importer-ca:
     image: hyperledger/fabric-ca:$CA_IMAGE_TAG
+    platform: $PLATFORM
     environment:
       - FABRIC_CA_HOME=/etc/hyperledger/fabric-ca-server
       - FABRIC_CA_SERVER_CA_NAME=ca-importerorg
@@ -56,6 +58,7 @@ services:
 
   carrier-ca:
     image: hyperledger/fabric-ca:$CA_IMAGE_TAG
+    platform: $PLATFORM
     environment:
       - FABRIC_CA_HOME=/etc/hyperledger/fabric-ca-server
       - FABRIC_CA_SERVER_CA_NAME=ca-carrierorg
@@ -74,6 +77,7 @@ services:
 
   regulator-ca:
     image: hyperledger/fabric-ca:$CA_IMAGE_TAG
+    platform: $PLATFORM
     environment:
       - FABRIC_CA_HOME=/etc/hyperledger/fabric-ca-server
       - FABRIC_CA_SERVER_CA_NAME=ca-regulatororg

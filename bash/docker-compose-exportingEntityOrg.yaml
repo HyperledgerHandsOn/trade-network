@@ -14,6 +14,7 @@ networks:
 services:
   exportingentity-ca:
     image: hyperledger/fabric-ca:$CA_IMAGE_TAG
+    platform: $PLATFORM
     environment:
       - FABRIC_CA_HOME=/etc/hyperledger/fabric-ca-server
       - FABRIC_CA_SERVER_CA_NAME=ca-exportingentityorg
@@ -33,6 +34,7 @@ services:
   couchdb-peer0.exportingentityorg.trade.com:
     container_name: couchdb-peer0.exportingentityorg.trade.com
     image: couchdb:2.3
+    platform: $PLATFORM
     # Populate the COUCHDB_USER and COUCHDB_PASSWORD to set an admin user and password
     # for CouchDB.  This will prevent CouchDB from operating in an "Admin Party" mode.
     environment:

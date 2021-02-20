@@ -184,7 +184,7 @@ function checkPrereqs() {
   # Note, we check configtxlator externally because it does not require a config file, and peer in the
   # docker image because of FAB-8551 that makes configtxlator return 'development version' in docker
   LOCAL_VERSION=$(configtxlator version | sed -ne 's/ Version: //p')
-  DOCKER_IMAGE_VERSION=$(docker run --rm hyperledger/fabric-tools:$IMAGE_TAG peer version | sed -ne 's/ Version: //p'|head -1)
+  DOCKER_IMAGE_VERSION=$(docker run --platform $PLATFORM --rm hyperledger/fabric-tools:$IMAGE_TAG peer version | sed -ne 's/ Version: //p'|head -1)
 
   echo "LOCAL_VERSION=$LOCAL_VERSION"
   echo "DOCKER_IMAGE_VERSION=$DOCKER_IMAGE_VERSION"
