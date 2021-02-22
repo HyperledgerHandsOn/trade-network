@@ -8,7 +8,6 @@
     "fabric-client": "~1.4.0",
     "fabric-network": "~1.4.0",
     "fs-extra": "^2.0.0",
-    "jsrsasign": "6.2.2",
     "tape": "^4.5.1",
     "tape-promise": "^1.1.0"
   },
