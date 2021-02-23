@@ -11,6 +11,7 @@ services:
   couchdb-peer0.exporterorg.trade.com:
     container_name: couchdb-peer0.exporterorg.trade.com
     image: couchdb:2.3
+    platform: $PLATFORM
     # Populate the COUCHDB_USER and COUCHDB_PASSWORD to set an admin user and password
     # for CouchDB.  This will prevent CouchDB from operating in an "Admin Party" mode.
     environment:
@@ -38,6 +39,7 @@ services:
   couchdb-peer0.importerorg.trade.com:
     container_name: couchdb-peer0.importerorg.trade.com
     image: couchdb:2.3
+    platform: $PLATFORM
     # Populate the COUCHDB_USER and COUCHDB_PASSWORD to set an admin user and password
     # for CouchDB.  This will prevent CouchDB from operating in an "Admin Party" mode.
     environment:
@@ -65,6 +67,7 @@ services:
   couchdb-peer0.regulatororg.trade.com:
     container_name: couchdb-peer0.regulatororg.trade.com
     image: couchdb:2.3
+    platform: $PLATFORM
     # Populate the COUCHDB_USER and COUCHDB_PASSWORD to set an admin user and password
     # for CouchDB.  This will prevent CouchDB from operating in an "Admin Party" mode.
     environment:

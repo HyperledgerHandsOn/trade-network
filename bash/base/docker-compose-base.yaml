@@ -34,7 +34,7 @@ services:
       - CORE_PEER_GOSSIP_BOOTSTRAP=peer0.exporterorg.trade.com:7051
       - CORE_PEER_LOCALMSPID=ExporterOrgMSP
     volumes:
-        - /var/run/:/host/var/run/
+        - $UNIX_SOCK:/host/var/run/docker.sock
         - ../crypto-config/peerOrganizations/exporterorg.trade.com/peers/peer0.exporterorg.trade.com/msp:/etc/hyperledger/fabric/msp
         - ../crypto-config/peerOrganizations/exporterorg.trade.com/peers/peer0.exporterorg.trade.com/tls:/etc/hyperledger/fabric/tls
         - peer0.exporterorg.trade.com:/var/hyperledger/production
@@ -56,7 +56,7 @@ services:
       - CORE_PEER_GOSSIP_BOOTSTRAP=peer0.importerorg.trade.com:8051
       - CORE_PEER_LOCALMSPID=ImporterOrgMSP
     volumes:
-        - /var/run/:/host/var/run/
+        - $UNIX_SOCK:/host/var/run/docker.sock
         - ../crypto-config/peerOrganizations/importerorg.trade.com/peers/peer0.importerorg.trade.com/msp:/etc/hyperledger/fabric/msp
         - ../crypto-config/peerOrganizations/importerorg.trade.com/peers/peer0.importerorg.trade.com/tls:/etc/hyperledger/fabric/tls
         - peer0.importerorg.trade.com:/var/hyperledger/production
@@ -78,7 +78,7 @@ services:
       - CORE_PEER_GOSSIP_BOOTSTRAP=peer0.carrierorg.trade.com:9051
       - CORE_PEER_LOCALMSPID=CarrierOrgMSP
     volumes:
-        - /var/run/:/host/var/run/
+        - $UNIX_SOCK:/host/var/run/docker.sock
         - ../crypto-config/peerOrganizations/carrierorg.trade.com/peers/peer0.carrierorg.trade.com/msp:/etc/hyperledger/fabric/msp
         - ../crypto-config/peerOrganizations/carrierorg.trade.com/peers/peer0.carrierorg.trade.com/tls:/etc/hyperledger/fabric/tls
         - peer0.carrierorg.trade.com:/var/hyperledger/production
@@ -100,7 +100,7 @@ services:
       - CORE_PEER_GOSSIP_BOOTSTRAP=peer0.regulatororg.trade.com:10051
       - CORE_PEER_LOCALMSPID=RegulatorOrgMSP
     volumes:
-        - /var/run/:/host/var/run/
+        - $UNIX_SOCK:/host/var/run/docker.sock
         - ../crypto-config/peerOrganizations/regulatororg.trade.com/peers/peer0.regulatororg.trade.com/msp:/etc/hyperledger/fabric/msp
         - ../crypto-config/peerOrganizations/regulatororg.trade.com/peers/peer0.regulatororg.trade.com/tls:/etc/hyperledger/fabric/tls
         - peer0.regulatororg.trade.com:/var/hyperledger/production

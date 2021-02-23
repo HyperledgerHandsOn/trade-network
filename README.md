@@ -1,5 +1,11 @@
 # Trade Network
 
+:exclamation: Scripts have been tested and are supported on the following operating systems:  
+* Ubuntu 18.04 and 20.04  
+* mac OS Catalina (10.15)  
+  
+Unfortunately, other operating systems will be supported on a best effort basis.
+
 ## Use Case Description
 See the [Use Case Document](USE-CASE.md) for a full description of the use case driving the Fabric network and application.
 
