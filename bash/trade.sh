@@ -1355,6 +1355,8 @@ elif [ "$MODE" == "down" ]; then
   EXPMODE="Stopping network"
 elif [ "$MODE" == "restart" ]; then
   EXPMODE="Restarting network"
+elif [ "$MODE" == "reset" ]; then
+  EXPMODE="Cleaning temporary user credentials and chaincode containers"
 elif [ "$MODE" == "clean" ]; then
   EXPMODE="Cleaning network and channel configurations"
 elif [ "$MODE" == "cleanall" ]; then
